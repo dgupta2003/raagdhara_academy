@@ -1,0 +1,162 @@
+@import url('https://fonts.googleapis.com/css2?family=Crimson+Text:wght@400;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Source+Sans+Pro:wght@300;400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Devanagari:wght@400;500&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Primary Colors */
+    --color-primary: #8B4513; /* saddle-brown */
+    --color-primary-foreground: #FFFFFF; /* white */
+    
+    /* Secondary Colors */
+    --color-secondary: #D4AF37; /* metallic-gold */
+    --color-secondary-foreground: #2F1B14; /* dark-brown */
+    
+    /* Accent Colors */
+    --color-accent: #CD5C5C; /* muted-coral */
+    --color-accent-foreground: #FFFFFF; /* white */
+    
+    /* Background Colors */
+    --color-background: #FDF5E6; /* soft-parchment */
+    --color-foreground: #2F2F2F; /* charcoal */
+    
+    /* Surface Colors */
+    --color-card: #F5F5DC; /* subtle-beige */
+    --color-card-foreground: #2F2F2F; /* charcoal */
+    --color-popover: #FFFFFF; /* white */
+    --color-popover-foreground: #2F2F2F; /* charcoal */
+    
+    /* Muted Colors */
+    --color-muted: #F5DEB3; /* wheat */
+    --color-muted-foreground: #696969; /* warm-gray */
+    
+    /* Border & Input */
+    --color-border: rgba(212, 175, 55, 0.3); /* gold-30 */
+    --color-input: #F5F5DC; /* subtle-beige */
+    --color-ring: #D4AF37; /* metallic-gold */
+    
+    /* Status Colors */
+    --color-success: #228B22; /* forest-green */
+    --color-success-foreground: #FFFFFF; /* white */
+    --color-warning: #DAA520; /* golden-rod */
+    --color-warning-foreground: #2F1B14; /* dark-brown */
+    --color-error: #B22222; /* deep-red */
+    --color-error-foreground: #FFFFFF; /* white */
+    --color-destructive: #B22222; /* deep-red */
+    --color-destructive-foreground: #FFFFFF; /* white */
+    
+    /* Brand Specific Colors */
+    --color-brand-brown: #2F1B14; /* dark-brown */
+    --color-brand-brown-grey: #5D4037; /* brown-grey */
+    --color-brand-peru: #CD853F; /* peru */
+    --color-brand-dark-goldenrod: #B8860B; /* dark-goldenrod */
+    --color-brand-cornsilk: #FFF8DC; /* cornsilk */
+    
+    /* Radius */
+    --radius: 0.25rem; /* 4px */
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  
+  body {
+    @apply bg-background text-foreground;
+    font-family: 'Source Sans Pro', sans-serif;
+    font-weight: 400;
+  }
+  
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Crimson Text', serif;
+    font-weight: 600;
+  }
+  
+  button, .btn {
+    font-family: 'Poppins', sans-serif;
+    font-weight: 500;
+  }
+  
+  .devanagari {
+    font-family: 'Noto Sans Devanagari', sans-serif;
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+  
+  .animate-breathing {
+    animation: breathing 6s ease-in-out infinite;
+  }
+  
+  @keyframes breathing {
+    0%, 100% {
+      letter-spacing: 0.02em;
+    }
+    50% {
+      letter-spacing: 0.05em;
+    }
+  }
+  
+  .animate-pulse-gentle {
+    animation: pulse-gentle 2s ease-in-out infinite;
+  }
+  
+  @keyframes pulse-gentle {
+    0%, 100% {
+      transform: scale(1);
+      opacity: 1;
+    }
+    50% {
+      transform: scale(1.05);
+      opacity: 0.8;
+    }
+  }
+  
+  .shadow-warm {
+    box-shadow: 0 4px 12px rgba(139, 69, 19, 0.1);
+  }
+  
+  .shadow-warm-lg {
+    box-shadow: 0 4px 20px rgba(139, 69, 19, 0.15);
+  }
+  
+  .transition-contemplative {
+    transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  }
+  
+  .transition-meditative {
+    transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  }
+}
+
+/* Hero Section Animations */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeInRight {
+  from {
+    opacity: 0;
+    transform: translateX(-30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}

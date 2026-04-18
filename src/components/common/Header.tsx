@@ -113,8 +113,14 @@ const Header = ({ className = '' }: HeaderProps) => {
             ))}
           </nav>
 
-          {/* CTA Button - Desktop */}
-          <div className="hidden lg:block">
+          {/* CTA Buttons - Desktop */}
+          <div className="hidden lg:flex items-center gap-3">
+            <Link
+              href="/auth/login"
+              className="inline-flex items-center px-4 py-2 border border-border text-foreground/70 font-cta text-sm rounded-md hover:text-primary hover:border-primary transition-all duration-300"
+            >
+              Student Login
+            </Link>
             <Link
               href="/free-consultation-booking"
               className={`inline-flex items-center px-6 py-3 bg-secondary text-secondary-foreground font-cta text-sm rounded-md shadow-warm hover:shadow-warm-lg hover:scale-105 transition-all duration-300 ${
@@ -159,6 +165,13 @@ const Header = ({ className = '' }: HeaderProps) => {
               >
                 Free Consultation
                 <Icon name="ArrowRightIcon" size={16} className="ml-2" />
+              </Link>
+              <Link
+                href="/auth/login"
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="inline-flex items-center justify-center px-6 py-3 border border-border text-foreground/70 font-cta text-sm rounded-md hover:text-primary hover:border-primary transition-contemplative"
+              >
+                Student Login
               </Link>
             </nav>
           </div>

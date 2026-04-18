@@ -10,8 +10,8 @@ export const viewport = {
 };
 
 export const metadata = {
-  title: 'Next.js with Tailwind CSS',
-  description: 'A boilerplate project with Next.js and Tailwind CSS',
+  title: 'Raagdhara Music Academy | Indian Classical Vocal Training',
+  description: 'Learn Hindustani classical vocal music with Vaishnavi Gupta, a Visharad-certified instructor. Personalized online courses for all levels — India and worldwide.',
   icons: {
     icon: [
       { url: '/assets/images/favicon-32x32-1769236763631.png', type: 'image/x-icon' }

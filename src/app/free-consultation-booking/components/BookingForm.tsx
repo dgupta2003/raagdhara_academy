@@ -136,7 +136,6 @@ export default function BookingForm({ selectedType, onSubmit }: BookingFormProps
         .single();
 
       if (dbError) {
-        console.error('Database error:', dbError);
         throw new Error('Failed to save booking. Please try again.');
       }
 
@@ -163,14 +162,8 @@ export default function BookingForm({ selectedType, onSubmit }: BookingFormProps
           },
           type: 'customer_confirmation'
         }
-      }).then(response => {
-        if (response.error) {
-          console.warn('Customer email failed:', response.error);
-        } else {
-          console.log('Customer email sent successfully');
-        }
       });
-      
+
       supabase.functions.invoke('send-booking-notification', {
         body: {
           bookingData: {
@@ -187,12 +180,6 @@ export default function BookingForm({ selectedType, onSubmit }: BookingFormProps
           },
           type: 'admin_notification'
         }
-      }).then(response => {
-        if (response.error) {
-          console.warn('Admin email failed:', response.error);
-        } else {
-          console.log('Admin email sent successfully');
-        }
       });
 
       // Success - show Calendly inline widget immediately
@@ -200,7 +187,6 @@ export default function BookingForm({ selectedType, onSubmit }: BookingFormProps
       setShowCalendly(true);
 
     } catch (error: any) {
-      console.error('Submission error:', error);
       setSubmitError(error.message || 'Failed to submit booking. Please try again.');
     } finally {
       // Always reset submitting state immediately to prevent freezing

@@ -7,7 +7,7 @@ import CoursesPreview from './CoursesPreview';
 import TestimonialsSection from './TestimonialsSection';
 // import RagaVisualization from './RagaVisualization';
 import CTASection from './CTASection';
-import Footer from './Footer';
+import Footer from '@/components/common/Footer';
 import FloatingBookingWidget from './FloatingBookingWidget';
 import BookingModal from './BookingModal';
 

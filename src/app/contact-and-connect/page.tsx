@@ -2,13 +2,11 @@ import type { Metadata } from 'next';
 import Header from '@/components/common/Header';
 import ContactHero from './components/ContactHero';
 import ContactMethods from './components/ContactMethods';
-// import ContactFormSection from './components/ContactFormSection';
 import OfficeHours from './components/OfficeHours';
 import SocialMediaHub from './components/SocialMediaHub';
 import TestimonialsSection from './components/TestimonialsSection';
 import FAQSection from './components/FAQSection';
-// import LocationSection from './components/LocationSection';
-import Footer from './components/Footer';
+import Footer from '@/components/common/Footer';
 import FloatingActions from './components/FloatingActions';
 
 export const metadata: Metadata = {
@@ -30,9 +28,6 @@ export default function ContactAndConnectPage() {
       {/* Contact Methods - Choose your preferred way to connect */}
       <ContactMethods />
       
-      {/* Contact Form */}
-      {/* <ContactFormSection /> */}
-      
       {/* Office Hours */}
       <OfficeHours />
       
@@ -41,10 +36,7 @@ export default function ContactAndConnectPage() {
       
       {/* FAQ Section */}
       <FAQSection />
-      
-      {/* Location */}
-      {/* <LocationSection /> */}
-      
+
       {/* Footer */}
       <Footer />
       

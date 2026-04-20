@@ -6,11 +6,10 @@ import {
   type ConsultationEmailData,
 } from '@/lib/email/templates';
 
-const resend = new Resend(process.env.RESEND_API_KEY);
-const FROM_EMAIL = 'Raagdhara Music Academy <noreply@raagdhara.com>';
-const ADMIN_EMAIL = process.env.ADMIN_EMAIL ?? 'raagdharamusic@gmail.com';
-
 export async function POST(request: NextRequest) {
+  const resend = new Resend(process.env.RESEND_API_KEY);
+  const FROM_EMAIL = 'Raagdhara Music Academy <noreply@raagdhara.com>';
+  const ADMIN_EMAIL = process.env.ADMIN_EMAIL ?? 'raagdharamusic@gmail.com';
   try {
     const data: ConsultationEmailData = await request.json();
 

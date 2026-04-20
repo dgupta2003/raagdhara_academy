@@ -4,9 +4,6 @@ import { adminAuth, adminDb } from '@/lib/firebase/admin';
 import { Resend } from 'resend';
 import { studentWelcomeEmail } from '@/lib/email/templates';
 
-const resend = new Resend(process.env.RESEND_API_KEY);
-const FROM_EMAIL = 'Raagdhara Music Academy <noreply@raagdhara.com>';
-
 async function verifyAdmin(): Promise<string | null> {
   const cookieStore = cookies();
   const sessionCookie = cookieStore.get('session')?.value;
@@ -25,6 +22,8 @@ export async function POST(
   _request: NextRequest,
   { params }: { params: { studentId: string } }
 ) {
+  const resend = new Resend(process.env.RESEND_API_KEY);
+  const FROM_EMAIL = 'Raagdhara Music Academy <noreply@raagdhara.com>';
   const adminUid = await verifyAdmin();
   if (!adminUid) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });

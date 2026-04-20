@@ -3,7 +3,8 @@
 import { useState, useEffect } from 'react';
 import Icon from '@/components/ui/AppIcon';
 import Script from 'next/script';
-import { createClient } from '@/lib/supabase/client';
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { db } from '@/lib/firebase/client';
 import { trackBookingConversion, trackFormStep } from '@/lib/analytics';
 
 interface BookingFormProps {
@@ -114,30 +115,21 @@ export default function BookingForm({ selectedType, onSubmit }: BookingFormProps
     trackFormStep('form_submitted', 'consultation_booking');
 
     try {
-      const supabase = createClient();
-
-      // Save booking to Supabase
-      const { data: bookingData, error: dbError } = await supabase
-        .from('consultation_bookings')
-        .insert({
-          student_name: formData.name,
-          email: formData.email,
-          phone: formData.phone,
-          country_code: formData.countryCode,
-          age_group: formData.ageGroup,
-          course_selection: formData.course,
-          timezone: formData.timezone,
-          experience_level: formData.experience,
-          goals: formData.goals || null,
-          hear_about: formData.hearAbout || null,
-          consultation_type: selectedType
-        })
-        .select()
-        .single();
-
-      if (dbError) {
-        throw new Error('Failed to save booking. Please try again.');
-      }
+      // Save booking to Firestore
+      await addDoc(collection(db, 'consultations'), {
+        name: formData.name,
+        email: formData.email,
+        phone: formData.phone,
+        countryCode: formData.countryCode,
+        ageGroup: formData.ageGroup,
+        course: formData.course,
+        timezone: formData.timezone,
+        experience: formData.experience,
+        goals: formData.goals || null,
+        hearAbout: formData.hearAbout || null,
+        consultationType: selectedType,
+        createdAt: serverTimestamp(),
+      });
 
       // Track successful booking conversion
       trackBookingConversion({
@@ -147,39 +139,22 @@ export default function BookingForm({ selectedType, onSubmit }: BookingFormProps
       });
 
       // Trigger emails in background (fire and forget - don't wait)
-      supabase.functions.invoke('send-booking-notification', {
-        body: {
-          bookingData: {
-            studentName: formData.name,
-            email: formData.email,
-            phone: formData.phone,
-            countryCode: formData.countryCode,
-            ageGroup: formData.ageGroup,
-            course: formData.course,
-            timezone: formData.timezone,
-            experience: formData.experience,
-            goals: formData.goals
-          },
-          type: 'customer_confirmation'
-        }
-      });
-
-      supabase.functions.invoke('send-booking-notification', {
-        body: {
-          bookingData: {
-            studentName: formData.name,
-            email: formData.email,
-            phone: formData.phone,
-            countryCode: formData.countryCode,
-            ageGroup: formData.ageGroup,
-            course: formData.course,
-            timezone: formData.timezone,
-            experience: formData.experience,
-            goals: formData.goals,
-            hearAbout: formData.hearAbout
-          },
-          type: 'admin_notification'
-        }
+      fetch('/api/email/consultation-notification', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: formData.name,
+          email: formData.email,
+          phone: formData.phone,
+          countryCode: formData.countryCode,
+          ageGroup: formData.ageGroup,
+          course: formData.course,
+          timezone: formData.timezone,
+          experience: formData.experience,
+          goals: formData.goals,
+          hearAbout: formData.hearAbout,
+          consultationType: selectedType,
+        }),
       });
 
       // Success - show Calendly inline widget immediately

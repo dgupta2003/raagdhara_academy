@@ -1,10 +1,26 @@
-
 'use client';
 
 import { createContext, useContext, useEffect, useState } from 'react';
-import { createClient } from '@/lib/supabase/client';
+import {
+  User as FirebaseUser,
+  onAuthStateChanged,
+  signInWithEmailAndPassword,
+  signOut as firebaseSignOut,
+} from 'firebase/auth';
+import { doc, getDoc } from 'firebase/firestore';
+import { auth, db } from '@/lib/firebase/client';
+import type { User as FirestoreUser, Student, UserRole } from '@/lib/firebase/types';
 
-const AuthContext = createContext<any>({});
+interface AuthContextType {
+  user: FirebaseUser | null;
+  userRole: UserRole | null;
+  studentProfile: Student | null;
+  loading: boolean;
+  signIn: (email: string, password: string) => Promise<UserRole>;
+  signOut: () => Promise<void>;
+}
+
+const AuthContext = createContext<AuthContextType | null>(null);
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
@@ -14,100 +30,80 @@ export const useAuth = () => {
   return context;
 };
 
+async function fetchUserRole(uid: string): Promise<UserRole | null> {
+  const userDoc = await getDoc(doc(db, 'users', uid));
+  if (!userDoc.exists()) return null;
+  return (userDoc.data() as FirestoreUser).role;
+}
+
+async function fetchStudentProfile(uid: string): Promise<Student | null> {
+  const studentDoc = await getDoc(doc(db, 'students', uid));
+  if (!studentDoc.exists()) return null;
+  return studentDoc.data() as Student;
+}
+
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
-  const [user, setUser] = useState<any>(null);
-  const [session, setSession] = useState<any>(null);
+  const [user, setUser] = useState<FirebaseUser | null>(null);
+  const [userRole, setUserRole] = useState<UserRole | null>(null);
+  const [studentProfile, setStudentProfile] = useState<Student | null>(null);
   const [loading, setLoading] = useState(true);
-  const supabase = createClient();
 
   useEffect(() => {
-    // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      setLoading(false);
-    });
-
-    // Listen for auth changes
-    const {
-      data: { subscription }
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      setLoading(false);
-    });
-
-    return () => subscription.unsubscribe();
-  }, []);
-
-  // Email/Password Sign Up
-  const signUp = async (email: string, password: string, metadata = {}) => {
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: {
-          full_name: metadata?.fullName || '',
-          avatar_url: metadata?.avatarUrl || ''
-        },
-        emailRedirectTo: `${window.location.origin}/auth/callback`
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      try {
+        if (firebaseUser) {
+          setUser(firebaseUser);
+          const role = await fetchUserRole(firebaseUser.uid);
+          setUserRole(role);
+          if (role === 'student') {
+            const profile = await fetchStudentProfile(firebaseUser.uid);
+            setStudentProfile(profile);
+          } else {
+            setStudentProfile(null);
+          }
+        } else {
+          setUser(null);
+          setUserRole(null);
+          setStudentProfile(null);
+        }
+      } catch (error) {
+        console.error('Auth state change error:', error);
+      } finally {
+        setLoading(false);
       }
     });
-    if (error) throw error;
-    return data;
-  };
 
-  // Email/Password Sign In
-  const signIn = async (email: string, password: string) => {
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password
+    return () => unsubscribe();
+  }, []);
+
+  const signIn = async (email: string, password: string): Promise<UserRole> => {
+    const credential = await signInWithEmailAndPassword(auth, email, password);
+    const idToken = await credential.user.getIdToken();
+
+    const sessionRes = await fetch('/api/auth/session', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token: idToken }),
     });
-    if (error) throw error;
-    return data;
+    if (!sessionRes.ok) {
+      throw new Error('Failed to create session. Please try again.');
+    }
+
+    // Fetch role directly so LoginForm can redirect immediately,
+    // without waiting for onAuthStateChanged to propagate.
+    const role = await fetchUserRole(credential.user.uid);
+    if (!role) throw new Error('User account not configured. Please contact support.');
+    return role;
   };
 
-  // Sign Out
   const signOut = async () => {
-    const { error } = await supabase.auth.signOut();
-    if (error) throw error;
+    await fetch('/api/auth/session', { method: 'DELETE' });
+    await firebaseSignOut(auth);
   };
 
-  // Get Current User
-  const getCurrentUser = async () => {
-    const { data: { user }, error } = await supabase.auth.getUser();
-    if (error) throw error;
-    return user;
-  };
-
-  // Check if Email is Verified
-  const isEmailVerified = () => {
-    return user?.email_confirmed_at !== null;
-  };
-
-  // Get User Profile from Database
-  const getUserProfile = async () => {
-    if (!user) return null;
-    const { data, error } = await supabase
-      .from('user_profiles')
-      .select('*')
-      .eq('id', user.id)
-      .single();
-    if (error) throw error;
-    return data;
-  };
-
-  const value = {
-    user,
-    session,
-    loading,
-    signUp,
-    signIn,
-    signOut,
-    getCurrentUser,
-    isEmailVerified,
-    getUserProfile
-  };
-
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  return (
+    <AuthContext.Provider value={{ user, userRole, studentProfile, loading, signIn, signOut }}>
+      {children}
+    </AuthContext.Provider>
+  );
 };

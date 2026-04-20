@@ -35,3 +35,12 @@ jest-test-results.json
 
 # Optional: if using TurboRepo or monorepo
 turbo/
+
+# Firebase service account (SENSITIVE - never commit)
+firebase-service-account.json
+
+# Local progress notes
+.progress.md
+
+# Session context log (local reference, not for version control)
+.context.md

@@ -39,19 +39,16 @@ function buildDueDate(paymentDay: number, month?: string): string {
 }
 
 async function alreadyHasPayment(studentId: string, month: string): Promise<boolean> {
-  const start = month + '-01'
-  const endDate = new Date(month + '-01')
-  endDate.setMonth(endDate.getMonth() + 1)
-  const end = endDate.toISOString().split('T')[0]
-
+  // Single-field equality query only — no composite index needed.
+  // Filter by month prefix in JS (dueDate is stored as YYYY-MM-DD string).
   const snap = await adminDb
     .collection('payments')
     .where('studentId', '==', studentId)
-    .where('dueDate', '>=', start)
-    .where('dueDate', '<', end)
-    .limit(1)
     .get()
-  return !snap.empty
+  return snap.docs.some((d) => {
+    const dueDate = d.data().dueDate as string | undefined
+    return typeof dueDate === 'string' && dueDate.startsWith(month)
+  })
 }
 
 async function createPaymentForStudent(
@@ -84,47 +81,51 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  const body = await request.json()
-  const { studentId, bulk, month } = body as {
-    studentId?: string
-    bulk?: boolean
-    month?: string // YYYY-MM, defaults to current month
-  }
-
-  const targetMonth =
-    month ?? new Date().toISOString().slice(0, 7)
-
-  const settingsDoc = await adminDb.collection('settings').doc('global').get()
-  const settings: Settings = settingsDoc.exists
-    ? (settingsDoc.data() as Settings)
-    : DEFAULT_SETTINGS
-
-  if (bulk) {
-    const snap = await adminDb
-      .collection('students')
-      .where('status', '==', 'active')
-      .get()
-
-    let created = 0
-    let skipped = 0
-    for (const doc of snap.docs) {
-      const student = { id: doc.id, ...(doc.data() as Student) }
-      const result = await createPaymentForStudent(student, settings, targetMonth)
-      if (result === 'created') created++
-      else skipped++
+  try {
+    const body = await request.json()
+    const { studentId, bulk, month } = body as {
+      studentId?: string
+      bulk?: boolean
+      month?: string // YYYY-MM, defaults to current month
     }
-    return NextResponse.json({ created, skipped })
-  }
 
-  if (!studentId) {
-    return NextResponse.json({ error: 'studentId required' }, { status: 400 })
-  }
+    const targetMonth = month ?? new Date().toISOString().slice(0, 7)
 
-  const studentDoc = await adminDb.collection('students').doc(studentId).get()
-  if (!studentDoc.exists) {
-    return NextResponse.json({ error: 'Student not found' }, { status: 404 })
+    const settingsDoc = await adminDb.collection('settings').doc('global').get()
+    const settings: Settings = settingsDoc.exists
+      ? (settingsDoc.data() as Settings)
+      : DEFAULT_SETTINGS
+
+    if (bulk) {
+      const snap = await adminDb
+        .collection('students')
+        .where('status', '==', 'active')
+        .get()
+
+      let created = 0
+      let skipped = 0
+      for (const doc of snap.docs) {
+        const student = { id: doc.id, ...(doc.data() as Student) }
+        const result = await createPaymentForStudent(student, settings, targetMonth)
+        if (result === 'created') created++
+        else skipped++
+      }
+      return NextResponse.json({ created, skipped })
+    }
+
+    if (!studentId) {
+      return NextResponse.json({ error: 'studentId required' }, { status: 400 })
+    }
+
+    const studentDoc = await adminDb.collection('students').doc(studentId).get()
+    if (!studentDoc.exists) {
+      return NextResponse.json({ error: 'Student not found' }, { status: 404 })
+    }
+    const student = { id: studentDoc.id, ...(studentDoc.data() as Student) }
+    const result = await createPaymentForStudent(student, settings, targetMonth)
+    return NextResponse.json({ created: result === 'created' ? 1 : 0, skipped: result === 'skipped' ? 1 : 0 })
+  } catch (err) {
+    console.error('Admin payments POST error:', err)
+    return NextResponse.json({ error: (err as Error).message ?? 'Internal server error' }, { status: 500 })
   }
-  const student = { id: studentDoc.id, ...(studentDoc.data() as Student) }
-  const result = await createPaymentForStudent(student, settings, targetMonth)
-  return NextResponse.json({ created: result === 'created' ? 1 : 0, skipped: result === 'skipped' ? 1 : 0 })
 }

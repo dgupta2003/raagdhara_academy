@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import type { Student } from '@/lib/firebase/types';
+import type { Student, Payment, PaymentStatus } from '@/lib/firebase/types';
 
 const COURSES = [
   { id: 'hindustani-classical-vocal', label: 'Hindustani Classical Vocal Music' },
@@ -18,11 +18,34 @@ const BATCH_TYPES = [
   { id: 'personal', label: 'Personal Classes' },
 ];
 
-export default function StudentEditClient({ student }: { student: Student & { id: string } }) {
+const STATUS_CONFIG: Record<PaymentStatus, { label: string; classes: string }> = {
+  paid: { label: 'Paid', classes: 'text-green-700 bg-green-50 border-green-200' },
+  pending: { label: 'Pending', classes: 'text-amber-700 bg-amber-50 border-amber-200' },
+  sent: { label: 'Invoice Sent', classes: 'text-amber-700 bg-amber-50 border-amber-200' },
+  overdue: { label: 'Overdue', classes: 'text-red-700 bg-red-50 border-red-200' },
+};
+
+function formatAmount(amount: number, currency: string) {
+  return currency === 'USD' ? `$${amount}` : `₹${(amount / 100).toLocaleString('en-IN')}`;
+}
+
+function formatDate(d: string) {
+  return new Date(d).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+}
+
+export default function StudentEditClient({
+  student,
+  recentPayments = [],
+}: {
+  student: Student & { id: string };
+  recentPayments?: (Payment & { id: string })[];
+}) {
   const router = useRouter();
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState('');
   const [saveSuccess, setSaveSuccess] = useState(false);
+  const [invoiceLoading, setInvoiceLoading] = useState(false);
+  const [invoiceMsg, setInvoiceMsg] = useState('');
 
   const [fields, setFields] = useState({
     status: student.status,
@@ -138,6 +161,65 @@ export default function StudentEditClient({ student }: { student: Student & { id
       >
         {isSaving ? 'Saving…' : 'Save changes'}
       </button>
+
+      {/* Payments section */}
+      <div className="pt-4 border-t border-border space-y-3">
+        <div className="flex items-center justify-between">
+          <h2 className="font-headline text-base font-semibold text-foreground">Payments</h2>
+          <button
+            onClick={async () => {
+              setInvoiceLoading(true);
+              setInvoiceMsg('');
+              try {
+                const res = await fetch('/api/admin/payments', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ studentId: student.id }),
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error ?? 'Failed');
+                setInvoiceMsg(data.created > 0 ? 'Invoice created.' : 'Invoice already exists for this month.');
+                router.refresh();
+              } catch (err) {
+                setInvoiceMsg(`Error: ${(err as Error).message}`);
+              } finally {
+                setInvoiceLoading(false);
+              }
+            }}
+            disabled={invoiceLoading}
+            className="px-3 py-1.5 text-xs font-body font-medium rounded-md border border-border text-foreground hover:bg-muted/30 disabled:opacity-60 transition-contemplative"
+          >
+            {invoiceLoading ? 'Creating…' : 'Generate invoice for this month'}
+          </button>
+        </div>
+
+        {invoiceMsg && (
+          <p className={`text-xs font-body px-3 py-2 rounded-md border ${invoiceMsg.startsWith('Error') ? 'text-red-700 bg-red-50 border-red-200' : 'text-green-700 bg-green-50 border-green-200'}`}>
+            {invoiceMsg}
+          </p>
+        )}
+
+        {recentPayments.length === 0 ? (
+          <p className="text-sm font-body text-muted-foreground">No invoices yet.</p>
+        ) : (
+          <div className="space-y-2">
+            {recentPayments.map((p) => {
+              const cfg = STATUS_CONFIG[p.status];
+              return (
+                <div key={p.id} className="flex items-center justify-between py-2 px-3 rounded-md bg-muted/20">
+                  <div>
+                    <span className="font-body text-sm font-medium text-foreground">{formatAmount(p.amount, p.currency)}</span>
+                    <span className="font-body text-xs text-muted-foreground ml-2">due {formatDate(p.dueDate as string)}</span>
+                  </div>
+                  <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-body font-medium border ${cfg.classes}`}>
+                    {cfg.label}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

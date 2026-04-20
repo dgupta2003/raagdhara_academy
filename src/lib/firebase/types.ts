@@ -45,14 +45,16 @@ export interface Attendance {
 
 export interface Payment {
   studentId: string
+  studentName: string
+  studentEmail: string
   amount: number
   currency: PaymentCurrency
+  convertedAmountInr?: number
   razorpayOrderId?: string
   razorpayPaymentId?: string
   status: PaymentStatus
   dueDate: FirestoreTimestamp
   paidAt?: FirestoreTimestamp
-  paymentLink?: string
   reminderSentAt?: FirestoreTimestamp
   createdAt: FirestoreTimestamp
   updatedAt: FirestoreTimestamp

@@ -1,19 +1,52 @@
-export default function AdminPaymentsPage() {
+import { cookies } from 'next/headers'
+import { redirect } from 'next/navigation'
+import { adminAuth, adminDb } from '@/lib/firebase/admin'
+import type { Payment } from '@/lib/firebase/types'
+import { serializeDoc } from '@/lib/firebase/serialize'
+import AdminPaymentsClient from './AdminPaymentsClient'
+
+async function getPayments() {
+  const cookieStore = cookies()
+  const sessionCookie = cookieStore.get('session')?.value
+  if (!sessionCookie) redirect('/auth/login')
+
+  try {
+    await adminAuth.verifySessionCookie(sessionCookie, true)
+  } catch {
+    redirect('/auth/login')
+  }
+
+  const snap = await adminDb
+    .collection('payments')
+    .orderBy('dueDate', 'desc')
+    .get()
+
+  return snap.docs.map((d) =>
+    serializeDoc({ id: d.id, ...(d.data() as Payment) })
+  )
+}
+
+export default async function AdminPaymentsPage() {
+  const payments = await getPayments()
+
+  const pending = payments.filter((p) => p.status === 'pending' || p.status === 'sent').length
+  const overdue = payments.filter((p) => p.status === 'overdue').length
+  const paid = payments.filter((p) => p.status === 'paid').length
+
   return (
     <div className="p-8">
-      <div className="mb-8">
-        <h1 className="font-headline text-2xl font-semibold text-foreground">Payments</h1>
-        <p className="font-body text-sm text-muted-foreground mt-1">Payment management and Razorpay integration.</p>
+      <div className="mb-8 flex items-start justify-between gap-4">
+        <div>
+          <h1 className="font-headline text-2xl font-semibold text-foreground">Payments</h1>
+          <p className="font-body text-sm text-muted-foreground mt-1">
+            {payments.length > 0
+              ? `${paid} paid · ${pending} pending · ${overdue} overdue`
+              : 'No invoices yet.'}
+          </p>
+        </div>
       </div>
-      <div className="bg-white rounded-lg border border-border shadow-warm p-12 text-center">
-        <svg className="w-12 h-12 text-muted-foreground/40 mx-auto mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
-        </svg>
-        <p className="font-headline text-lg text-foreground mb-2">Coming in Phase 5</p>
-        <p className="font-body text-sm text-muted-foreground max-w-sm mx-auto">
-          Razorpay integration for automated monthly payments, manual triggers, and overdue reminders will be built in Phase 5.
-        </p>
-      </div>
+
+      <AdminPaymentsClient payments={payments} />
     </div>
-  );
+  )
 }

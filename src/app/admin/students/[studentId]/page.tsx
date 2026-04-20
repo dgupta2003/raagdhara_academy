@@ -1,11 +1,11 @@
 import { cookies } from 'next/headers';
 import { redirect, notFound } from 'next/navigation';
 import { adminAuth, adminDb } from '@/lib/firebase/admin';
-import type { Student } from '@/lib/firebase/types';
+import type { Student, Payment } from '@/lib/firebase/types';
 import { serializeDoc } from '@/lib/firebase/serialize';
 import StudentEditClient from './StudentEditClient';
 
-async function getStudent(studentId: string): Promise<Student & { id: string }> {
+async function getStudentData(studentId: string) {
   const cookieStore = cookies();
   const sessionCookie = cookieStore.get('session')?.value;
   if (!sessionCookie) redirect('/auth/login');
@@ -16,13 +16,24 @@ async function getStudent(studentId: string): Promise<Student & { id: string }> 
     redirect('/auth/login');
   }
 
-  const doc = await adminDb.collection('students').doc(studentId).get();
-  if (!doc.exists) notFound();
-  return serializeDoc({ id: doc.id, ...(doc.data() as Student) });
+  const [studentDoc, paymentsSnap] = await Promise.all([
+    adminDb.collection('students').doc(studentId).get(),
+    adminDb.collection('payments').where('studentId', '==', studentId).get(),
+  ]);
+
+  if (!studentDoc.exists) notFound();
+
+  const student = serializeDoc({ id: studentDoc.id, ...(studentDoc.data() as Student) });
+  const payments = paymentsSnap.docs
+    .map((d) => serializeDoc({ id: d.id, ...(d.data() as Payment) }))
+    .sort((a, b) => (b.dueDate as string).localeCompare(a.dueDate as string))
+    .slice(0, 3);
+
+  return { student, recentPayments: payments };
 }
 
 export default async function StudentDetailPage({ params }: { params: { studentId: string } }) {
-  const student = await getStudent(params.studentId);
+  const { student, recentPayments } = await getStudentData(params.studentId);
 
   return (
     <div className="p-8 max-w-2xl">
@@ -37,7 +48,7 @@ export default async function StudentDetailPage({ params }: { params: { studentI
         <p className="font-body text-sm text-muted-foreground mt-1">{student.email}</p>
       </div>
 
-      <StudentEditClient student={student} />
+      <StudentEditClient student={student} recentPayments={recentPayments} />
     </div>
   );
 }

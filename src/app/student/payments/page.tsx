@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation';
 import { adminAuth, adminDb } from '@/lib/firebase/admin';
 import type { Payment, Student } from '@/lib/firebase/types';
 import { serializeDoc } from '@/lib/firebase/serialize';
+import { getUsdToInrRate } from '@/lib/payments/exchange-rate';
 import PaymentsClient from './PaymentsClient';
 
 async function getPaymentsData() {
@@ -32,11 +33,22 @@ async function getPaymentsData() {
     .map((d) => serializeDoc({ id: d.id, ...(d.data() as Payment) }))
     .sort((a, b) => (b.dueDate as string).localeCompare(a.dueDate as string));
 
-  return { payments };
+  // Only fetch exchange rate if student has any USD payments
+  const hasUsdPayments = payments.some((p) => p.currency === 'USD');
+  let exchangeRate: number | null = null;
+  if (hasUsdPayments) {
+    try {
+      exchangeRate = await getUsdToInrRate();
+    } catch {
+      // Rate fetch failed — Pay button will fetch a fresh rate at click time
+    }
+  }
+
+  return { payments, exchangeRate, studentCategory: student.category };
 }
 
 export default async function StudentPaymentsPage() {
-  const { payments } = await getPaymentsData();
+  const { payments, exchangeRate, studentCategory } = await getPaymentsData();
 
   const paidCount = payments.filter((p) => p.status === 'paid').length;
   const pendingCount = payments.filter((p) => p.status !== 'paid').length;
@@ -58,7 +70,11 @@ export default async function StudentPaymentsPage() {
         </p>
       </div>
 
-      <PaymentsClient payments={payments} />
+      <PaymentsClient
+        payments={payments}
+        exchangeRate={exchangeRate}
+        studentCategory={studentCategory}
+      />
     </div>
   );
 }

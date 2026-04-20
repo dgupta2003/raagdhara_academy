@@ -14,9 +14,26 @@ const STATUS_CONFIG: Record<PaymentStatus, { label: string; classes: string }> =
   overdue: { label: 'Overdue', classes: 'text-red-700 bg-red-50 border-red-200' },
 }
 
+function formatInr(paise: number): string {
+  const rupees = Math.floor(paise / 100)
+  if (rupees >= 100000) {
+    const lakhs = Math.floor(rupees / 100000)
+    const remainder = rupees % 100000
+    const thousands = Math.floor(remainder / 1000)
+    const hundreds = remainder % 1000
+    return `₹${lakhs},${thousands.toString().padStart(2, '0')},${hundreds.toString().padStart(3, '0')}`
+  }
+  if (rupees >= 1000) {
+    const thousands = Math.floor(rupees / 1000)
+    const remainder = rupees % 1000
+    return `₹${thousands},${remainder.toString().padStart(3, '0')}`
+  }
+  return `₹${rupees}`
+}
+
 function formatAmount(amount: number, currency: string): string {
   if (currency === 'USD') return `$${amount}`
-  return `₹${(amount / 100).toLocaleString('en-IN')}`
+  return formatInr(amount)
 }
 
 const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']

@@ -44,3 +44,8 @@ firebase-service-account.json
 
 # Session context log (local reference, not for version control)
 .context.md
+
+# Personal learning notes and planning docs (local only)
+_notes/
+analyze-the-project-and-hashed-pearl.md
+EDGE_FUNCTION_SETUP.md

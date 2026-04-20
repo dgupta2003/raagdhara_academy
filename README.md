@@ -1,97 +1,105 @@
-# Next.js
+# Raagdhara Music Academy
 
-A modern Next.js 14 application built with TypeScript and Tailwind CSS.
+Website and student management platform for Raagdhara Music Academy — an Indian classical vocal music school.
 
-## 🚀 Features
+## What This Is
 
-- **Next.js 14** - Latest version with improved performance and features
-- **React 18** - Latest React version with enhanced capabilities
-- **Tailwind CSS** - Utility-first CSS framework for rapid UI development
+A Next.js web application combining a public-facing website with a private teacher/student portal:
 
-## 📋 Prerequisites
+- **Public website** — homepage, courses, free consultation booking
+- **Admin dashboard** — student management, attendance tracking, fee settings, payment management
+- **Student portal** — attendance history, payment invoices
 
-- Node.js (v14.x or higher)
-- npm or yarn
+## Tech Stack
 
+- **Framework:** Next.js 14.2 (App Router), TypeScript
+- **Styling:** Tailwind CSS with custom theme (brand brown, gold, parchment)
+- **Auth & Database:** Firebase Auth + Firestore
+- **Email:** Resend
+- **Payments:** Razorpay *(Phase 5 — in progress)*
+- **Deployment:** Netlify
 
-## 🛠️ Installation
+## Courses Offered
 
-1. Install dependencies:
-  ```bash
-  npm install
-  # or
-  yarn install
-  ```
+- Hindustani Classical Vocal Music
+- Popular and Film Music (Hindi)
+- Devotional Music (Hindi)
+- Ghazal
+- Bhatkhande Sangeet Vidyapeeth — Full Course
 
-2. Start the development server:
-  ```bash
-  npm run dev
-  # or
-  yarn dev
-  ```
-3. Open [http://localhost:4028](http://localhost:4028) with your browser to see the result.
+## Getting Started
 
-## 📁 Project Structure
+### Prerequisites
 
-```
-nextjs-js-tailwind/
-├── public/             # Static assets
-├── src/
-│   ├── app/            # App router components
-│   │   ├── layout.tsx  # Root layout component
-│   │   └── page.tsx    # Main page component
-│   ├── components/     # Reusable UI components
-│   ├── styles/         # Global styles and Tailwind configuration
-├── next.config.mjs     # Next.js configuration
-├── package.json        # Project dependencies and scripts
-├── postcss.config.js   # PostCSS configuration
-└── tailwind.config.js  # Tailwind CSS configuration
+- Node.js 18+
+- Firebase project (Firestore + Firebase Auth enabled)
+- Resend account with verified sending domain
+
+### Environment Variables
+
+Create `.env.local` with the following:
 
 ```
+# Firebase Client (browser)
+NEXT_PUBLIC_FIREBASE_API_KEY=
+NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=
+NEXT_PUBLIC_FIREBASE_PROJECT_ID=
+NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=
+NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=
+NEXT_PUBLIC_FIREBASE_APP_ID=
 
-## 🧩 Page Editing
+# Firebase Admin (server only)
+FIREBASE_PROJECT_ID=
+FIREBASE_CLIENT_EMAIL=
+FIREBASE_PRIVATE_KEY=
 
-You can start editing the page by modifying `src/app/page.tsx`. The page auto-updates as you edit the file.
+# Email
+RESEND_API_KEY=
+ADMIN_EMAIL=
+```
 
-## 🎨 Styling
+### Run Locally
 
-This project uses Tailwind CSS for styling with the following features:
-- Utility-first approach for rapid development
-- Custom theme configuration
-- Responsive design utilities
-- PostCSS and Autoprefixer integration
+```bash
+npm install
+npm run dev
+```
 
-## 📦 Available Scripts
+Opens at [http://localhost:4028](http://localhost:4028)
 
-- `npm run dev` - Start development server on port 4028
-- `npm run build` - Build the application for production
-- `npm run start` - Start the development server
-- `npm run serve` - Start the production server
-- `npm run lint` - Run ESLint to check code quality
-- `npm run lint:fix` - Fix ESLint issues automatically
-- `npm run format` - Format code with Prettier
+### Deploy Firestore Rules & Indexes
 
-## 📱 Deployment
+```bash
+firebase deploy --only firestore
+```
 
-Build the application for production:
+## Project Structure
 
-  ```bash
-  npm run build
-  ```
+```
+src/
+  app/
+    admin/          # Teacher dashboard (auth-protected)
+    student/        # Student portal (auth-protected)
+    auth/           # Login & registration pages
+    api/            # Server-side API routes
+    homepage/       # Public homepage
+    courses-and-offerings/
+    free-consultation-booking/
+  components/
+    auth/           # Login and register forms
+    dashboard/      # Admin and student sidebars
+    common/         # Header, Footer
+  contexts/         # AuthContext (Firebase Auth state)
+  lib/
+    firebase/       # Client SDK, Admin SDK, types, serialization
+    email/          # Resend email templates
+  middleware.ts     # Route protection for /admin/* and /student/*
+```
 
-## 📚 Learn More
+## Available Scripts
 
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial
-
-You can check out the [Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## 🙏 Acknowledgments
-
-- Built with [Rocket.new](https://rocket.new)
-- Powered by Next.js and React
-- Styled with Tailwind CSS
-
-Built with ❤️ on Rocket.new
+```bash
+npm run dev       # Start development server (port 4028)
+npm run build     # Production build
+npm run lint      # ESLint
+```

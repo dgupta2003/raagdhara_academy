@@ -19,10 +19,10 @@ function formatAmount(amount: number, currency: string): string {
   return `₹${(amount / 100).toLocaleString('en-IN')}`
 }
 
+const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
 function formatDate(dateStr: string): string {
-  return new Date(dateStr).toLocaleDateString('en-IN', {
-    day: 'numeric', month: 'short', year: 'numeric',
-  })
+  const [year, month, day] = dateStr.split('-')
+  return `${parseInt(day)} ${MONTHS[parseInt(month) - 1]} ${year}`
 }
 
 export default function AdminPaymentsClient({ payments }: { payments: PaymentRecord[] }) {

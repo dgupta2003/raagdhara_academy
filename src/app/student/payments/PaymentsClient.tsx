@@ -118,8 +118,9 @@ function PayNowButton({ payment }: { payment: PaymentRecord }) {
         },
       });
 
-      rzp.on('payment.failed', () => {
-        setError('Payment failed. Please try again.');
+      rzp.on('payment.failed', (response: { error: { code: string; description: string; reason: string; step: string } }) => {
+        console.error('Razorpay payment.failed:', JSON.stringify(response.error, null, 2));
+        setError(`${response.error.description} [${response.error.reason}]`);
         setLoading(false);
       });
 

@@ -74,21 +74,6 @@ function PayNowButton({ payment }: { payment: PaymentRecord }) {
           email: payment.studentEmail,
           contact: '9999999999',
         },
-        config: {
-          display: {
-            blocks: {
-              upi: {
-                name: 'Pay via UPI',
-                instruments: [
-                  { method: 'upi', flows: ['collect'] },
-                  { method: 'upi', flows: ['qr'] },
-                ],
-              },
-            },
-            sequence: ['block.upi'],
-            preferences: { show_default_blocks: true },
-          },
-        },
         theme: { color: '#8B4513' },
         handler: async (response: {
           razorpay_order_id: string;

@@ -76,6 +76,30 @@ async function createPaymentForStudent(
   return 'created'
 }
 
+export async function DELETE(request: NextRequest) {
+  if (!(await verifyAdmin())) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+  try {
+    const { paymentId } = await request.json() as { paymentId: string }
+    if (!paymentId) return NextResponse.json({ error: 'paymentId required' }, { status: 400 })
+
+    const ref = adminDb.collection('payments').doc(paymentId)
+    const doc = await ref.get()
+    if (!doc.exists) return NextResponse.json({ error: 'Not found' }, { status: 404 })
+
+    const status = doc.data()?.status
+    if (status === 'paid') {
+      return NextResponse.json({ error: 'Cannot delete a paid invoice' }, { status: 400 })
+    }
+
+    await ref.delete()
+    return NextResponse.json({ deleted: true })
+  } catch (err) {
+    return NextResponse.json({ error: (err as Error).message ?? 'Internal server error' }, { status: 500 })
+  }
+}
+
 export async function POST(request: NextRequest) {
   if (!(await verifyAdmin())) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })

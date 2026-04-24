@@ -47,6 +47,26 @@ export default function AdminPaymentsClient({ payments }: { payments: PaymentRec
   const [filter, setFilter] = useState<Filter>('all')
   const [generating, setGenerating] = useState(false)
   const [genResult, setGenResult] = useState<string | null>(null)
+  const [deleting, setDeleting] = useState<string | null>(null)
+
+  const handleDelete = async (paymentId: string) => {
+    if (!confirm('Delete this invoice? This cannot be undone.')) return
+    setDeleting(paymentId)
+    try {
+      const res = await fetch('/api/admin/payments', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ paymentId }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error ?? 'Failed to delete')
+      router.refresh()
+    } catch (err) {
+      alert((err as Error).message)
+    } finally {
+      setDeleting(null)
+    }
+  }
 
   const filtered = payments.filter((p) => {
     if (filter === 'all') return true
@@ -126,7 +146,7 @@ export default function AdminPaymentsClient({ payments }: { payments: PaymentRec
           <table className="w-full text-sm">
             <thead className="bg-muted/30 border-b border-border">
               <tr>
-                {['Student', 'Amount', 'Due date', 'Status'].map((h) => (
+                {['Student', 'Amount', 'Due date', 'Status', ''].map((h) => (
                   <th key={h} className="px-4 py-3 text-left text-xs font-body font-medium text-muted-foreground uppercase tracking-wide">
                     {h}
                   </th>
@@ -152,6 +172,18 @@ export default function AdminPaymentsClient({ payments }: { payments: PaymentRec
                       <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-body font-medium border ${config.classes}`}>
                         {config.label}
                       </span>
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      {p.status !== 'paid' && (
+                        <button
+                          onClick={() => handleDelete(p.id)}
+                          disabled={deleting === p.id}
+                          className="text-xs font-body text-muted-foreground hover:text-red-600 transition-colors disabled:opacity-50"
+                          title="Delete invoice"
+                        >
+                          {deleting === p.id ? '…' : 'Delete'}
+                        </button>
+                      )}
                     </td>
                   </tr>
                 )

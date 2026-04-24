@@ -127,14 +127,23 @@ export default async function AdminOverviewPage() {
         </div>
 
         <div className="bg-white rounded-lg border border-border p-6 shadow-warm">
-          <h2 className="font-headline text-lg font-semibold text-foreground mb-4">Coming soon</h2>
+          <h2 className="font-headline text-lg font-semibold text-foreground mb-4">Payments</h2>
           <div className="space-y-2">
-            {['Payment collection (Phase 5)', 'Attendance reports', 'Student progress tracking'].map((item) => (
-              <div key={item} className="flex items-center gap-3 p-3">
-                <span className="w-2 h-2 rounded-full bg-muted flex-shrink-0" />
-                <span className="font-body text-sm text-muted-foreground">{item}</span>
-              </div>
-            ))}
+            <Link href="/admin/payments" className="flex items-center gap-3 p-3 rounded-md hover:bg-muted/50 transition-colors group">
+              <span className="w-2 h-2 rounded-full bg-red-400 flex-shrink-0" />
+              <span className="font-body text-sm text-foreground group-hover:text-primary transition-colors">
+                View unpaid invoices
+                {unpaidCount > 0 && <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs bg-red-100 text-red-700">{unpaidCount}</span>}
+              </span>
+            </Link>
+            <Link href="/admin/payments" className="flex items-center gap-3 p-3 rounded-md hover:bg-muted/50 transition-colors group">
+              <span className="w-2 h-2 rounded-full bg-primary flex-shrink-0" />
+              <span className="font-body text-sm text-foreground group-hover:text-primary transition-colors">Generate this month&apos;s invoices</span>
+            </Link>
+            <Link href="/admin/settings" className="flex items-center gap-3 p-3 rounded-md hover:bg-muted/50 transition-colors group">
+              <span className="w-2 h-2 rounded-full bg-muted flex-shrink-0" />
+              <span className="font-body text-sm text-foreground group-hover:text-primary transition-colors">Manage fee settings</span>
+            </Link>
           </div>
         </div>
       </div>

@@ -16,6 +16,20 @@ async function verifyAdmin(): Promise<boolean> {
   }
 }
 
+export async function GET(request: NextRequest) {
+  if (!(await verifyAdmin())) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  const date = request.nextUrl.searchParams.get('date');
+  if (!date) return NextResponse.json({ error: 'Missing date' }, { status: 400 });
+
+  const snap = await adminDb.collection('attendance').where('sessionDate', '==', date).get();
+  const records: Record<string, string> = {};
+  snap.docs.forEach((d) => { records[d.data().studentId] = d.data().status; });
+  return NextResponse.json({ records });
+}
+
 export async function POST(request: NextRequest) {
   const adminUid = await verifyAdmin();
   if (!adminUid) {

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import type { Student, AttendanceStatus } from '@/lib/firebase/types';
 
 const BATCH_OPTIONS = [
@@ -21,9 +21,28 @@ export default function AttendanceClient({ students }: { students: (Student & { 
   const [batchFilter, setBatchFilter] = useState('all');
   const [groupFilter, setGroupFilter] = useState('all');
   const [attendance, setAttendance] = useState<Record<string, AttendanceStatus>>({});
+  const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState('');
   const [saveSuccess, setSaveSuccess] = useState(false);
+
+  const loadExisting = useCallback(async (d: string) => {
+    setIsLoading(true);
+    setAttendance({});
+    setSaveSuccess(false);
+    setSaveError('');
+    try {
+      const res = await fetch(`/api/admin/attendance?date=${d}`);
+      if (res.ok) {
+        const data = await res.json();
+        setAttendance(data.records ?? {});
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { loadExisting(today); }, [loadExisting, today]);
 
   // Groups available for the selected batch (only meaningful for 'normal')
   const groupsInBatch = batchFilter === 'normal'
@@ -106,7 +125,7 @@ export default function AttendanceClient({ students }: { students: (Student & { 
             type="date"
             value={date}
             max={today}
-            onChange={(e) => { setDate(e.target.value); setSaveSuccess(false); }}
+            onChange={(e) => { setDate(e.target.value); loadExisting(e.target.value); }}
             className="w-full px-3 py-2 rounded-md border border-border bg-input text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring"
           />
         </div>
@@ -144,7 +163,9 @@ export default function AttendanceClient({ students }: { students: (Student & { 
       </div>
 
       {/* Student list */}
-      {filtered.length === 0 ? (
+      {isLoading ? (
+        <p className="font-body text-sm text-muted-foreground">Loading attendance…</p>
+      ) : filtered.length === 0 ? (
         <p className="font-body text-sm text-muted-foreground">No active students in this batch.</p>
       ) : (
         <div className="bg-white rounded-lg border border-border shadow-warm overflow-hidden mb-4">

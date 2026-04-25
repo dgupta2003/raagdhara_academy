@@ -38,6 +38,18 @@ turbo/
 # Firebase service account (SENSITIVE - never commit)
 firebase-service-account.json
 
+# Local environment variables (SENSITIVE - never commit)
+.env.local
+.env*.local
+
+# Spreadsheet data files (student PII)
+current_datafiles/
+
+# Claude Code / agent tool directories
+.agents/
+.claude/
+skills-lock.json
+
 # Local progress notes
 .progress.md
 

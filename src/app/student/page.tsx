@@ -52,20 +52,22 @@ async function getStudentOverview() {
   const sessionCookie = cookieStore.get('session')?.value;
   if (!sessionCookie) redirect('/auth/login');
 
-  let uid: string;
+  let studentId: string;
   try {
     const decoded = await adminAuth.verifySessionCookie(sessionCookie, true);
-    uid = decoded.uid;
+    // Invited students have auth UID ≠ student doc ID — resolve via users/ lookup
+    const userDoc = await adminDb.collection('users').doc(decoded.uid).get();
+    studentId = userDoc.data()?.studentId ?? decoded.uid;
   } catch {
     redirect('/auth/login');
   }
 
-  const studentDoc = await adminDb.collection('students').doc(uid).get();
+  const studentDoc = await adminDb.collection('students').doc(studentId).get();
   if (!studentDoc.exists) redirect('/auth/login');
   const student = studentDoc.data() as Student;
 
   if (student.status !== 'active') {
-    return { student, uid, attendanceStats: null, latestPayment: null };
+    return { student, uid: studentId, attendanceStats: null, latestPayment: null };
   }
 
   // For active students: fetch all attendance + all payments in parallel, filter/sort in JS.
@@ -75,8 +77,8 @@ async function getStudentOverview() {
   const thirtyDaysAgoStr = thirtyDaysAgo.toISOString().split('T')[0];
 
   const [attendanceSnap, paymentsSnap] = await Promise.all([
-    adminDb.collection('attendance').where('studentId', '==', uid).get(),
-    adminDb.collection('payments').where('studentId', '==', uid).get(),
+    adminDb.collection('attendance').where('studentId', '==', studentId).get(),
+    adminDb.collection('payments').where('studentId', '==', studentId).get(),
   ]);
 
   const allRecords = attendanceSnap.docs.map((d) => d.data() as Attendance);
@@ -92,7 +94,7 @@ async function getStudentOverview() {
   const latestPayment = allPayments.length === 0 ? null :
     allPayments.sort((a, b) => (b.dueDate as string).localeCompare(a.dueDate as string))[0];
 
-  return { student, uid, attendanceStats, latestPayment };
+  return { student, uid: studentId, attendanceStats, latestPayment };
 }
 
 export default async function StudentOverviewPage() {

@@ -1,4 +1,4 @@
-export type UserRole = 'admin' | 'student'
+export type UserRole = 'admin' | 'student' | 'parent'
 export type StudentCategory = 'india' | 'nri'
 export type NriCurrencyPreference = 'usd' | 'inr-equivalent'
 export type StudentStatus = 'pending' | 'active' | 'inactive'
@@ -12,6 +12,7 @@ export interface User {
   email: string
   role: UserRole
   studentId?: string
+  guardianId?: string
   createdAt: FirestoreTimestamp
 }
 
@@ -25,10 +26,28 @@ export interface Student {
   nriCurrencyPreference: NriCurrencyPreference
   courseId: string
   batchType: string
+  batchLabel?: string
   status: StudentStatus
   enrollmentDate: FirestoreTimestamp
   customFeeOverride?: number
   paymentDueDayOverride?: number
+  isMinor?: boolean
+  guardianUid?: string
+  inviteSentAt?: FirestoreTimestamp
+  createdAt: FirestoreTimestamp
+  updatedAt: FirestoreTimestamp
+}
+
+export interface Guardian {
+  uid: string
+  email: string
+  displayName: string
+  phone: string
+  countryCode: string
+  relationship: string
+  studentIds: string[]
+  studentNames?: Record<string, string>
+  inviteSentAt?: FirestoreTimestamp
   createdAt: FirestoreTimestamp
   updatedAt: FirestoreTimestamp
 }

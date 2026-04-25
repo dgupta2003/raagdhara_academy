@@ -73,7 +73,7 @@ export default function LoginForm() {
       if (redirectTo) {
         router.push(redirectTo);
       } else {
-        router.push(role === 'admin' ? '/admin' : '/student');
+        router.push(role === 'admin' ? '/admin' : role === 'parent' ? '/parent' : '/student');
       }
     } catch (error: unknown) {
       const code = (error as { code?: string }).code ?? '';

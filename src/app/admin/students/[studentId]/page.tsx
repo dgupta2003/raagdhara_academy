@@ -1,7 +1,7 @@
 import { cookies } from 'next/headers';
 import { redirect, notFound } from 'next/navigation';
 import { adminAuth, adminDb } from '@/lib/firebase/admin';
-import type { Student, Payment } from '@/lib/firebase/types';
+import type { Student, Payment, Guardian } from '@/lib/firebase/types';
 import { serializeDoc } from '@/lib/firebase/serialize';
 import StudentEditClient from './StudentEditClient';
 
@@ -29,11 +29,19 @@ async function getStudentData(studentId: string) {
     .sort((a, b) => (b.dueDate as string).localeCompare(a.dueDate as string))
     .slice(0, 3);
 
-  return { student, recentPayments: payments };
+  let guardianInfo = null;
+  if (student.guardianUid) {
+    const guardianDoc = await adminDb.collection('guardians').doc(student.guardianUid as string).get();
+    if (guardianDoc.exists) {
+      guardianInfo = serializeDoc({ id: guardianDoc.id, ...(guardianDoc.data() as Guardian) });
+    }
+  }
+
+  return { student, recentPayments: payments, guardianInfo };
 }
 
 export default async function StudentDetailPage({ params }: { params: { studentId: string } }) {
-  const { student, recentPayments } = await getStudentData(params.studentId);
+  const { student, recentPayments, guardianInfo } = await getStudentData(params.studentId);
 
   return (
     <div className="p-8 max-w-2xl">
@@ -48,7 +56,7 @@ export default async function StudentDetailPage({ params }: { params: { studentI
         <p className="font-body text-sm text-muted-foreground mt-1">{student.email}</p>
       </div>
 
-      <StudentEditClient student={student} recentPayments={recentPayments} />
+      <StudentEditClient student={student} recentPayments={recentPayments} guardianInfo={guardianInfo} />
     </div>
   );
 }

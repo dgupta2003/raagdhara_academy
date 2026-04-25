@@ -2,11 +2,26 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Check if the caller is an admin (reads their users doc — cached by Firebase)
     function isAdmin() {
       return request.auth != null
         && exists(/databases/$(database)/documents/users/$(request.auth.uid))
         && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+
+    function isParent() {
+      return request.auth != null
+        && exists(/databases/$(database)/documents/users/$(request.auth.uid))
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'parent';
+    }
+
+    function getGuardianId() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.guardianId;
+    }
+
+    function parentOwnsStudent(studentId) {
+      let guardianId = getGuardianId();
+      return guardianId != null
+        && get(/databases/$(database)/documents/guardians/$(guardianId)).data.studentIds.hasAny([studentId]);
     }
 
     // users/{uid} — own profile or admin
@@ -16,24 +31,40 @@ service cloud.firestore {
       allow update, delete: if isAdmin();
     }
 
-    // students/{uid} — own record or admin
+    // students/{uid} — own record, admin, or linked parent
     match /students/{uid} {
-      allow read: if request.auth != null && (request.auth.uid == uid || isAdmin());
+      allow read: if request.auth != null && (
+        request.auth.uid == uid
+        || isAdmin()
+        || (isParent() && parentOwnsStudent(uid))
+      );
       allow create: if request.auth != null && request.auth.uid == uid;
       allow update, delete: if isAdmin();
     }
 
-    // attendance — student reads own records, admin writes
+    // guardians/{uid} — own profile or admin
+    match /guardians/{uid} {
+      allow read: if request.auth != null && (request.auth.uid == uid || isAdmin());
+      allow create, update, delete: if isAdmin();
+    }
+
+    // attendance — student reads own, parent reads child's, admin writes
     match /attendance/{id} {
-      allow read: if request.auth != null
-        && (resource.data.studentId == request.auth.uid || isAdmin());
+      allow read: if request.auth != null && (
+        resource.data.studentId == request.auth.uid
+        || isAdmin()
+        || (isParent() && parentOwnsStudent(resource.data.studentId))
+      );
       allow write: if isAdmin();
     }
 
-    // payments — student reads own records, admin writes (webhook uses Admin SDK, bypasses rules)
+    // payments — student reads own, parent reads child's, admin writes
     match /payments/{id} {
-      allow read: if request.auth != null
-        && (resource.data.studentId == request.auth.uid || isAdmin());
+      allow read: if request.auth != null && (
+        resource.data.studentId == request.auth.uid
+        || isAdmin()
+        || (isParent() && parentOwnsStudent(resource.data.studentId))
+      );
       allow write: if isAdmin();
     }
 

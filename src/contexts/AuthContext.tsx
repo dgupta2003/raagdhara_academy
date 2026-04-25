@@ -9,12 +9,13 @@ import {
 } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase/client';
-import type { User as FirestoreUser, Student, UserRole } from '@/lib/firebase/types';
+import type { User as FirestoreUser, Student, Guardian, UserRole } from '@/lib/firebase/types';
 
 interface AuthContextType {
   user: FirebaseUser | null;
   userRole: UserRole | null;
   studentProfile: Student | null;
+  guardianProfile: Guardian | null;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<UserRole>;
   signOut: () => Promise<void>;
@@ -30,22 +31,30 @@ export const useAuth = () => {
   return context;
 };
 
-async function fetchUserRole(uid: string): Promise<UserRole | null> {
+async function fetchUserData(uid: string): Promise<{ role: UserRole | null; studentId?: string; guardianId?: string }> {
   const userDoc = await getDoc(doc(db, 'users', uid));
-  if (!userDoc.exists()) return null;
-  return (userDoc.data() as FirestoreUser).role;
+  if (!userDoc.exists()) return { role: null };
+  const data = userDoc.data() as FirestoreUser;
+  return { role: data.role, studentId: data.studentId, guardianId: data.guardianId };
 }
 
-async function fetchStudentProfile(uid: string): Promise<Student | null> {
-  const studentDoc = await getDoc(doc(db, 'students', uid));
+async function fetchStudentProfile(studentId: string): Promise<Student | null> {
+  const studentDoc = await getDoc(doc(db, 'students', studentId));
   if (!studentDoc.exists()) return null;
   return studentDoc.data() as Student;
+}
+
+async function fetchGuardianProfile(guardianId: string): Promise<Guardian | null> {
+  const guardianDoc = await getDoc(doc(db, 'guardians', guardianId));
+  if (!guardianDoc.exists()) return null;
+  return guardianDoc.data() as Guardian;
 }
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<FirebaseUser | null>(null);
   const [userRole, setUserRole] = useState<UserRole | null>(null);
   const [studentProfile, setStudentProfile] = useState<Student | null>(null);
+  const [guardianProfile, setGuardianProfile] = useState<Guardian | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -53,18 +62,28 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       try {
         if (firebaseUser) {
           setUser(firebaseUser);
-          const role = await fetchUserRole(firebaseUser.uid);
+          const { role, studentId, guardianId } = await fetchUserData(firebaseUser.uid);
           setUserRole(role);
+
           if (role === 'student') {
-            const profile = await fetchStudentProfile(firebaseUser.uid);
+            // studentId may differ from auth UID for admin-invited students
+            const resolvedId = studentId ?? firebaseUser.uid;
+            const profile = await fetchStudentProfile(resolvedId);
             setStudentProfile(profile);
+            setGuardianProfile(null);
+          } else if (role === 'parent' && guardianId) {
+            const profile = await fetchGuardianProfile(guardianId);
+            setGuardianProfile(profile);
+            setStudentProfile(null);
           } else {
             setStudentProfile(null);
+            setGuardianProfile(null);
           }
         } else {
           setUser(null);
           setUserRole(null);
           setStudentProfile(null);
+          setGuardianProfile(null);
         }
       } catch (error) {
         console.error('Auth state change error:', error);
@@ -91,7 +110,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     // Fetch role directly so LoginForm can redirect immediately,
     // without waiting for onAuthStateChanged to propagate.
-    const role = await fetchUserRole(credential.user.uid);
+    const { role } = await fetchUserData(credential.user.uid);
     if (!role) throw new Error('User account not configured. Please contact support.');
     return role;
   };
@@ -102,7 +121,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, userRole, studentProfile, loading, signIn, signOut }}>
+    <AuthContext.Provider value={{ user, userRole, studentProfile, guardianProfile, loading, signIn, signOut }}>
       {children}
     </AuthContext.Provider>
   );

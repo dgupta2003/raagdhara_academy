@@ -33,6 +33,7 @@ export async function PUT(
   if (body.status) update.status = body.status;
   if (body.courseId) update.courseId = body.courseId;
   if (body.batchType) update.batchType = body.batchType;
+  if (body.batchLabel !== undefined) update.batchLabel = body.batchLabel || null;
   if (body.category) update.category = body.category;
   if (body.customFeeOverride !== undefined) {
     update.customFeeOverride = body.customFeeOverride ?? null;

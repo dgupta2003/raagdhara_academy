@@ -7,6 +7,7 @@ import CoursesPreview from './CoursesPreview';
 import TestimonialsSection from './TestimonialsSection';
 // import RagaVisualization from './RagaVisualization';
 import CTASection from './CTASection';
+import StudentPortalAnnouncement from './StudentPortalAnnouncement';
 import Footer from '@/components/common/Footer';
 import FloatingBookingWidget from './FloatingBookingWidget';
 import BookingModal from './BookingModal';
@@ -28,6 +29,7 @@ const HomepageInteractive = () => {
       <AboutPreview />
       <CoursesPreview />
       {/* <RagaVisualization /> */}
+      <StudentPortalAnnouncement onBookConsultation={handleOpenBookingModal} />
       <TestimonialsSection />
       <CTASection onBookConsultation={handleOpenBookingModal} />
       <Footer />

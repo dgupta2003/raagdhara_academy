@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import type { Student, Payment, PaymentStatus } from '@/lib/firebase/types';
+import type { Student, Payment, PaymentStatus, Guardian } from '@/lib/firebase/types';
 
 const COURSES = [
   { id: 'hindustani-classical-vocal', label: 'Hindustani Classical Vocal Music' },
@@ -56,9 +56,11 @@ function formatDate(d: string) {
 export default function StudentEditClient({
   student,
   recentPayments = [],
+  guardianInfo = null,
 }: {
   student: Student & { id: string };
   recentPayments?: (Payment & { id: string })[];
+  guardianInfo?: (Guardian & { id: string }) | null;
 }) {
   const router = useRouter();
   const [isSaving, setIsSaving] = useState(false);
@@ -66,11 +68,24 @@ export default function StudentEditClient({
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [invoiceLoading, setInvoiceLoading] = useState(false);
   const [invoiceMsg, setInvoiceMsg] = useState('');
+  const [guardianForm, setGuardianForm] = useState({
+    guardianEmail: '',
+    guardianName: '',
+    phone: '',
+    countryCode: '+91',
+    relationship: 'Parent',
+  });
+  const [guardianLoading, setGuardianLoading] = useState(false);
+  const [guardianMsg, setGuardianMsg] = useState('');
+  const [inviteParentLoading, setInviteParentLoading] = useState(false);
+  const [inviteParentMsg, setInviteParentMsg] = useState('');
+  const [showGuardianForm, setShowGuardianForm] = useState(false);
 
   const [fields, setFields] = useState({
     status: student.status,
     courseId: student.courseId,
     batchType: student.batchType,
+    batchLabel: student.batchLabel ?? '',
     category: student.category,
     customFeeOverride: student.customFeeOverride?.toString() ?? '',
     paymentDueDayOverride: student.paymentDueDayOverride?.toString() ?? '',
@@ -89,6 +104,7 @@ export default function StudentEditClient({
           status: fields.status,
           courseId: fields.courseId,
           batchType: fields.batchType,
+          batchLabel: fields.batchLabel,
           category: fields.category,
           customFeeOverride: fields.customFeeOverride ? Number(fields.customFeeOverride) : null,
           paymentDueDayOverride: fields.paymentDueDayOverride ? Number(fields.paymentDueDayOverride) : null,
@@ -156,6 +172,18 @@ export default function StudentEditClient({
         <select value={fields.batchType} onChange={(e) => setFields((p) => ({ ...p, batchType: e.target.value }))} className={inputClass}>
           {BATCH_TYPES.map((b) => <option key={b.id} value={b.id}>{b.label}</option>)}
         </select>
+      </div>
+
+      <div>
+        <label className={labelClass}>Sub-batch / Group <span className="font-normal text-muted-foreground">(optional)</span></label>
+        <input
+          type="text"
+          value={fields.batchLabel}
+          onChange={(e) => setFields((p) => ({ ...p, batchLabel: e.target.value }))}
+          className={inputClass}
+          placeholder="e.g. Normal A, Normal B, Kids"
+        />
+        <p className="mt-1 text-xs text-muted-foreground font-body">Used to filter attendance by group. Leave blank if not applicable.</p>
       </div>
 
       <div className="grid grid-cols-2 gap-4 pt-2 border-t border-border">
@@ -238,6 +266,157 @@ export default function StudentEditClient({
               );
             })}
           </div>
+        )}
+      </div>
+      {/* Guardian section */}
+      <div className="pt-4 border-t border-border space-y-3">
+        <div className="flex items-center justify-between">
+          <h2 className="font-headline text-base font-semibold text-foreground">Guardian / Parent</h2>
+          {!guardianInfo && !showGuardianForm && (
+            <button
+              onClick={() => setShowGuardianForm(true)}
+              className="px-3 py-1.5 text-xs font-body font-medium rounded-md border border-border text-foreground hover:bg-muted/30 transition-contemplative"
+            >
+              Link guardian
+            </button>
+          )}
+        </div>
+
+        {guardianInfo ? (
+          <div className="space-y-3">
+            <div className="p-3 bg-muted/20 rounded-md space-y-1">
+              <p className="font-body text-sm font-medium text-foreground">{guardianInfo.displayName}</p>
+              <p className="font-body text-xs text-muted-foreground">{guardianInfo.email}</p>
+              {guardianInfo.phone && (
+                <p className="font-body text-xs text-muted-foreground">{guardianInfo.countryCode} {guardianInfo.phone} · {guardianInfo.relationship}</p>
+              )}
+              {guardianInfo.inviteSentAt && (
+                <p className="font-body text-xs text-green-600">Portal invite sent</p>
+              )}
+            </div>
+
+            <button
+              onClick={async () => {
+                setInviteParentLoading(true);
+                setInviteParentMsg('');
+                try {
+                  const res = await fetch(`/api/admin/guardians/${guardianInfo.id}/invite`, { method: 'POST' });
+                  const data = await res.json();
+                  if (!res.ok) throw new Error(data.error ?? 'Failed');
+                  setInviteParentMsg('Invite sent to parent.');
+                  router.refresh();
+                } catch (err) {
+                  setInviteParentMsg(`Error: ${(err as Error).message}`);
+                } finally {
+                  setInviteParentLoading(false);
+                }
+              }}
+              disabled={inviteParentLoading}
+              className="px-3 py-1.5 text-xs font-body font-medium rounded-md border border-indigo-300 text-indigo-700 bg-indigo-50 hover:bg-indigo-100 disabled:opacity-60 transition-contemplative"
+            >
+              {inviteParentLoading ? 'Sending…' : guardianInfo.inviteSentAt ? 'Resend portal invite to parent' : 'Send portal invite to parent'}
+            </button>
+
+            {inviteParentMsg && (
+              <p className={`text-xs font-body px-3 py-2 rounded-md border ${inviteParentMsg.startsWith('Error') ? 'text-red-700 bg-red-50 border-red-200' : 'text-green-700 bg-green-50 border-green-200'}`}>
+                {inviteParentMsg}
+              </p>
+            )}
+          </div>
+        ) : showGuardianForm ? (
+          <div className="space-y-3">
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className={labelClass}>Parent email</label>
+                <input
+                  type="email"
+                  value={guardianForm.guardianEmail}
+                  onChange={(e) => setGuardianForm((p) => ({ ...p, guardianEmail: e.target.value }))}
+                  className={inputClass}
+                  placeholder="parent@example.com"
+                />
+              </div>
+              <div>
+                <label className={labelClass}>Parent name</label>
+                <input
+                  type="text"
+                  value={guardianForm.guardianName}
+                  onChange={(e) => setGuardianForm((p) => ({ ...p, guardianName: e.target.value }))}
+                  className={inputClass}
+                  placeholder="Full name"
+                />
+              </div>
+              <div>
+                <label className={labelClass}>Phone</label>
+                <input
+                  type="tel"
+                  value={guardianForm.phone}
+                  onChange={(e) => setGuardianForm((p) => ({ ...p, phone: e.target.value }))}
+                  className={inputClass}
+                  placeholder="Phone number"
+                />
+              </div>
+              <div>
+                <label className={labelClass}>Relationship</label>
+                <select
+                  value={guardianForm.relationship}
+                  onChange={(e) => setGuardianForm((p) => ({ ...p, relationship: e.target.value }))}
+                  className={inputClass}
+                >
+                  <option>Parent</option>
+                  <option>Mother</option>
+                  <option>Father</option>
+                  <option>Guardian</option>
+                </select>
+              </div>
+            </div>
+
+            {guardianMsg && (
+              <p className={`text-xs font-body px-3 py-2 rounded-md border ${guardianMsg.startsWith('Error') ? 'text-red-700 bg-red-50 border-red-200' : 'text-green-700 bg-green-50 border-green-200'}`}>
+                {guardianMsg}
+              </p>
+            )}
+
+            <div className="flex gap-2">
+              <button
+                onClick={async () => {
+                  if (!guardianForm.guardianEmail || !guardianForm.guardianName) {
+                    setGuardianMsg('Error: Email and name are required.');
+                    return;
+                  }
+                  setGuardianLoading(true);
+                  setGuardianMsg('');
+                  try {
+                    const res = await fetch(`/api/admin/students/${student.id}/guardian`, {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify(guardianForm),
+                    });
+                    const data = await res.json();
+                    if (!res.ok) throw new Error(data.error ?? 'Failed');
+                    setGuardianMsg('Guardian linked successfully.');
+                    router.refresh();
+                  } catch (err) {
+                    setGuardianMsg(`Error: ${(err as Error).message}`);
+                  } finally {
+                    setGuardianLoading(false);
+                  }
+                }}
+                disabled={guardianLoading}
+                className="px-4 py-2 text-xs font-body font-medium rounded-md bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-60 transition-contemplative"
+              >
+                {guardianLoading ? 'Linking…' : 'Link guardian'}
+              </button>
+              <button
+                onClick={() => setShowGuardianForm(false)}
+                className="px-4 py-2 text-xs font-body font-medium rounded-md border border-border text-muted-foreground hover:bg-muted/30 transition-contemplative"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        ) : (
+          <p className="text-sm font-body text-muted-foreground">No guardian linked. Click &ldquo;Link guardian&rdquo; to add one.</p>
         )}
       </div>
     </div>

@@ -19,12 +19,34 @@ export default function AttendanceClient({ students }: { students: (Student & { 
   const today = new Date().toISOString().split('T')[0];
   const [date, setDate] = useState(today);
   const [batchFilter, setBatchFilter] = useState('all');
+  const [groupFilter, setGroupFilter] = useState('all');
   const [attendance, setAttendance] = useState<Record<string, AttendanceStatus>>({});
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState('');
   const [saveSuccess, setSaveSuccess] = useState(false);
 
-  const filtered = students.filter((s) => batchFilter === 'all' || s.batchType === batchFilter);
+  // Groups available for the selected batch (only meaningful for 'normal')
+  const groupsInBatch = batchFilter === 'normal'
+    ? Array.from(new Set(
+        students
+          .filter((s) => s.batchType === 'normal' && s.batchLabel)
+          .map((s) => s.batchLabel as string)
+      )).sort()
+    : [];
+
+  const showGroupFilter = batchFilter === 'normal' && groupsInBatch.length > 0;
+
+  const filtered = students.filter((s) => {
+    if (batchFilter !== 'all' && s.batchType !== batchFilter) return false;
+    if (showGroupFilter && groupFilter !== 'all' && s.batchLabel !== groupFilter) return false;
+    return true;
+  });
+
+  const handleBatchChange = (val: string) => {
+    setBatchFilter(val);
+    setGroupFilter('all');
+    setSaveSuccess(false);
+  };
 
   const setStatus = (studentId: string, status: AttendanceStatus) => {
     setAttendance((prev) => ({ ...prev, [studentId]: status }));
@@ -92,13 +114,26 @@ export default function AttendanceClient({ students }: { students: (Student & { 
           <label className="block text-xs font-medium text-muted-foreground mb-1 font-body uppercase tracking-wide">Batch</label>
           <select
             value={batchFilter}
-            onChange={(e) => { setBatchFilter(e.target.value); setSaveSuccess(false); }}
+            onChange={(e) => handleBatchChange(e.target.value)}
             className="px-3 py-2 rounded-md border border-border bg-input text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring"
           >
             <option value="all">All batches</option>
             {BATCH_OPTIONS.map((b) => <option key={b.id} value={b.id}>{b.label}</option>)}
           </select>
         </div>
+        {showGroupFilter && (
+          <div>
+            <label className="block text-xs font-medium text-muted-foreground mb-1 font-body uppercase tracking-wide">Group</label>
+            <select
+              value={groupFilter}
+              onChange={(e) => { setGroupFilter(e.target.value); setSaveSuccess(false); }}
+              className="px-3 py-2 rounded-md border border-border bg-input text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+            >
+              <option value="all">All groups</option>
+              {groupsInBatch.map((g) => <option key={g} value={g}>{g}</option>)}
+            </select>
+          </div>
+        )}
         <div className="flex gap-2">
           {(['present', 'absent'] as AttendanceStatus[]).map((s) => (
             <button key={s} onClick={() => markAll(s)} className="px-3 py-2 text-xs font-body border border-border rounded-md hover:bg-muted/50 transition-colors capitalize">
@@ -118,7 +153,9 @@ export default function AttendanceClient({ students }: { students: (Student & { 
               <div key={student.id} className="flex items-center justify-between px-5 py-3">
                 <div>
                   <p className="font-body text-sm font-medium text-foreground">{student.displayName}</p>
-                  <p className="font-body text-xs text-muted-foreground capitalize">{student.batchType}</p>
+                  <p className="font-body text-xs text-muted-foreground capitalize">
+                    {student.batchLabel ?? student.batchType}
+                  </p>
                 </div>
                 <div className="flex gap-2">
                   {STATUS_OPTIONS.map((opt) => (

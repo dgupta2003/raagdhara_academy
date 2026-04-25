@@ -132,6 +132,125 @@ export function consultationStudentConfirmationEmail(data: ConsultationEmailData
   return baseLayout('Consultation Booking Confirmed — Raagdhara Music Academy', body);
 }
 
+function ctaButton(label: string, href: string): string {
+  return `<div style="text-align:center;margin:28px 0;">
+    <a href="${href}" style="display:inline-block;background-color:${BRAND_BROWN};color:#ffffff;font-size:15px;font-weight:bold;padding:14px 32px;border-radius:6px;text-decoration:none;letter-spacing:0.5px;">${label}</a>
+  </div>`;
+}
+
+export interface StudentInviteEmailData {
+  displayName: string;
+  email: string;
+  courseId: string;
+  batchType: string;
+  passwordResetLink: string;
+}
+
+export function studentInviteEmail(data: StudentInviteEmailData): string {
+  const COURSE_LABELS: Record<string, string> = {
+    'hindustani-classical-vocal': 'Hindustani Classical Vocal Music',
+    'popular-film-music-hindi': 'Popular and Film Music - Hindi',
+    'devotional-hindi': 'Devotional - Hindi',
+    'ghazal': 'Ghazal',
+    'bhatkhande-full-course': 'Bhatkhande Sangeet Vidyapeeth - Full Course',
+  };
+  const BATCH_LABELS: Record<string, string> = {
+    normal: 'Normal Batch',
+    special: 'Special Batch',
+    personal: 'Personal Classes',
+  };
+
+  const body = `
+    <h1 style="margin:0 0 8px;font-size:22px;color:${BRAND_BROWN};">Welcome to the Raagdhara Student Portal!</h1>
+    <p style="margin:0 0 20px;font-size:15px;color:#555555;line-height:1.6;">
+      Hi ${data.displayName}, we're excited to share that Raagdhara Academy now has a dedicated online portal for students!
+      You can track your attendance, view invoices, and pay fees — all in one place.
+    </p>
+
+    <table width="100%" cellpadding="0" cellspacing="0" style="background-color:${BRAND_BG};border-radius:6px;padding:16px 20px;margin-bottom:20px;">
+      <tr><td colspan="2" style="padding-bottom:10px;font-size:12px;font-weight:bold;color:${BRAND_BROWN};letter-spacing:1px;text-transform:uppercase;">Your enrollment</td></tr>
+      ${detailRow('Course', COURSE_LABELS[data.courseId] ?? data.courseId)}
+      ${detailRow('Batch', BATCH_LABELS[data.batchType] ?? data.batchType)}
+      ${detailRow('Email', data.email)}
+    </table>
+
+    <p style="margin:0 0 6px;font-size:14px;font-weight:bold;color:#333333;">How to get started:</p>
+    <ol style="margin:0 0 24px;padding-left:20px;font-size:14px;color:#555555;line-height:2;">
+      <li>Click the button below to set your password</li>
+      <li>Once set, sign in at <a href="https://raagdhara.com/auth/login" style="color:${BRAND_BROWN};font-weight:bold;">raagdhara.com/auth/login</a></li>
+      <li>Explore your attendance history and invoices</li>
+    </ol>
+
+    <p style="margin:0 0 4px;font-size:13px;color:#888888;text-align:center;">This link expires in 1 hour. If it expires, use "Forgot password" on the login page.</p>
+
+    ${ctaButton('Set Your Password &amp; Get Started', data.passwordResetLink)}
+
+    <div style="margin:28px 0 0;padding-top:20px;border-top:1px solid #eeeeee;">
+      <p style="margin:0;font-size:13px;color:#888888;">With warm regards,<br/><strong style="color:${BRAND_BROWN};">Vaishnavi Gupta</strong><br/>Raagdhara Music Academy</p>
+    </div>
+  `;
+  return baseLayout('Your Raagdhara Student Portal is Ready', body);
+}
+
+export interface GuardianInviteEmailData {
+  parentName: string;
+  studentName: string;
+  courseId: string;
+  batchType: string;
+  passwordResetLink: string;
+}
+
+export function guardianInviteEmail(data: GuardianInviteEmailData): string {
+  const COURSE_LABELS: Record<string, string> = {
+    'hindustani-classical-vocal': 'Hindustani Classical Vocal Music',
+    'popular-film-music-hindi': 'Popular and Film Music - Hindi',
+    'devotional-hindi': 'Devotional - Hindi',
+    'ghazal': 'Ghazal',
+    'bhatkhande-full-course': 'Bhatkhande Sangeet Vidyapeeth - Full Course',
+  };
+  const BATCH_LABELS: Record<string, string> = {
+    normal: 'Normal Batch',
+    special: 'Special Batch',
+    personal: 'Personal Classes',
+  };
+
+  const body = `
+    <h1 style="margin:0 0 8px;font-size:22px;color:${BRAND_BROWN};">Parent Portal Access — Raagdhara Academy</h1>
+    <p style="margin:0 0 20px;font-size:15px;color:#555555;line-height:1.6;">
+      Hi ${data.parentName}, we've set up parent portal access so you can stay connected with ${data.studentName}'s learning journey at Raagdhara Academy.
+    </p>
+
+    <table width="100%" cellpadding="0" cellspacing="0" style="background-color:${BRAND_BG};border-radius:6px;padding:16px 20px;margin-bottom:20px;">
+      <tr><td colspan="2" style="padding-bottom:10px;font-size:12px;font-weight:bold;color:${BRAND_BROWN};letter-spacing:1px;text-transform:uppercase;">Student details</td></tr>
+      ${detailRow('Student', data.studentName)}
+      ${detailRow('Course', COURSE_LABELS[data.courseId] ?? data.courseId)}
+      ${detailRow('Batch', BATCH_LABELS[data.batchType] ?? data.batchType)}
+    </table>
+
+    <p style="margin:0 0 6px;font-size:14px;font-weight:bold;color:#333333;">What you can do in the portal:</p>
+    <ul style="margin:0 0 20px;padding-left:20px;font-size:14px;color:#555555;line-height:2;">
+      <li>View ${data.studentName}'s full attendance history</li>
+      <li>Check pending invoices and pay fees online</li>
+      <li>Stay informed about monthly progress</li>
+    </ul>
+
+    <p style="margin:0 0 6px;font-size:14px;font-weight:bold;color:#333333;">How to get started:</p>
+    <ol style="margin:0 0 24px;padding-left:20px;font-size:14px;color:#555555;line-height:2;">
+      <li>Click the button below to set your password</li>
+      <li>Once set, sign in at <a href="https://raagdhara.com/auth/login" style="color:${BRAND_BROWN};font-weight:bold;">raagdhara.com/auth/login</a></li>
+    </ol>
+
+    <p style="margin:0 0 4px;font-size:13px;color:#888888;text-align:center;">This link expires in 1 hour. If it expires, use "Forgot password" on the login page.</p>
+
+    ${ctaButton('Set Your Password &amp; Get Started', data.passwordResetLink)}
+
+    <div style="margin:28px 0 0;padding-top:20px;border-top:1px solid #eeeeee;">
+      <p style="margin:0;font-size:13px;color:#888888;">With warm regards,<br/><strong style="color:${BRAND_BROWN};">Vaishnavi Gupta</strong><br/>Raagdhara Music Academy</p>
+    </div>
+  `;
+  return baseLayout(`Parent Portal Access — ${data.studentName} at Raagdhara`, body);
+}
+
 export function consultationAdminNotificationEmail(data: ConsultationEmailData): string {
   const body = `
     <h1 style="margin:0 0 8px;font-size:20px;color:${BRAND_BROWN};">New consultation booking</h1>

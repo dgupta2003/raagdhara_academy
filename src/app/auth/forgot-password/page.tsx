@@ -2,8 +2,6 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { sendPasswordResetEmail } from 'firebase/auth';
-import { auth } from '@/lib/firebase/client';
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState('');
@@ -16,16 +14,15 @@ export default function ForgotPasswordPage() {
     setError('');
     setLoading(true);
     try {
-      await sendPasswordResetEmail(auth, email.trim());
+      const res = await fetch('/api/auth/forgot-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email.trim() }),
+      });
+      if (!res.ok) throw new Error('request_failed');
       setSent(true);
-    } catch (err: unknown) {
-      const code = (err as { code?: string }).code;
-      if (code === 'auth/user-not-found' || code === 'auth/invalid-email') {
-        // Don't reveal whether the email exists
-        setSent(true);
-      } else {
-        setError('Something went wrong. Please try again.');
-      }
+    } catch {
+      setError('Something went wrong. Please try again.');
     } finally {
       setLoading(false);
     }

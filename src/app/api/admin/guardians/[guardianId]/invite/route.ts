@@ -43,7 +43,9 @@ export async function POST(
   const studentDoc = await adminDb.collection('students').doc(firstStudentId).get();
   const student = studentDoc.exists ? (studentDoc.data() as Student) : null;
 
-  const resetLink = await adminAuth.generatePasswordResetLink(guardian.email);
+  const resetLink = await adminAuth.generatePasswordResetLink(guardian.email, {
+    url: 'https://raagdhara.com/auth/login',
+  });
 
   await adminDb.collection('guardians').doc(guardianId).update({
     inviteSentAt: FieldValue.serverTimestamp(),

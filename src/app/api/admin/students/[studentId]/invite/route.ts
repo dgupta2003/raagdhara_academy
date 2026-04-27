@@ -62,7 +62,9 @@ export async function inviteStudent(studentId: string): Promise<{ success: boole
     await studentRef.update({ inviteSentAt: FieldValue.serverTimestamp(), updatedAt: FieldValue.serverTimestamp() });
   }
 
-  const resetLink = await adminAuth.generatePasswordResetLink(student.email);
+  const resetLink = await adminAuth.generatePasswordResetLink(student.email, {
+    url: 'https://raagdhara.com/auth/login',
+  });
 
   const resend = new Resend(process.env.RESEND_API_KEY);
   resend.emails.send({

@@ -138,6 +138,34 @@ function ctaButton(label: string, href: string): string {
   </div>`;
 }
 
+export interface ForgotPasswordEmailData {
+  email: string;
+  resetLink: string;
+}
+
+export function forgotPasswordEmail(data: ForgotPasswordEmailData): string {
+  const body = `
+    <h1 style="margin:0 0 8px;font-size:22px;color:${BRAND_BROWN};">Reset your password</h1>
+    <p style="margin:0 0 24px;font-size:15px;color:#555555;line-height:1.6;">
+      We received a request to reset the password for <strong>${data.email}</strong>.
+      Click the button below to choose a new password.
+    </p>
+
+    <p style="margin:0 0 4px;font-size:13px;color:#888888;text-align:center;">This link expires in 1 hour.</p>
+
+    ${ctaButton('Reset My Password', data.resetLink)}
+
+    <p style="margin:24px 0 0;font-size:13px;color:#888888;line-height:1.6;">
+      If you didn't request a password reset, you can safely ignore this email — your password will not change.
+    </p>
+
+    <div style="margin:28px 0 0;padding-top:20px;border-top:1px solid #eeeeee;">
+      <p style="margin:0;font-size:13px;color:#888888;">With warm regards,<br/><strong style="color:${BRAND_BROWN};">Vaishnavi Gupta</strong><br/>Raagdhara Music Academy</p>
+    </div>
+  `;
+  return baseLayout('Reset your Raagdhara password', body);
+}
+
 export interface StudentInviteEmailData {
   displayName: string;
   email: string;

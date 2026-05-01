@@ -91,6 +91,25 @@ export interface Consultation {
   createdAt: FirestoreTimestamp
 }
 
+export interface LoginAudit {
+  uid: string
+  email: string
+  role: UserRole
+  loginAt: FirestoreTimestamp
+}
+
+export interface Batch {
+  batchType: 'normal' | 'special' | 'personal'
+  batchLabel: string | null
+  displayName: string
+  daysOfWeek: number[]
+  sessionTime: string
+  sessionDurationMinutes: number
+  isActive: boolean
+  createdAt: FirestoreTimestamp
+  updatedAt: FirestoreTimestamp
+}
+
 export interface Settings {
   defaultPaymentDay: number
   indiaFees: {

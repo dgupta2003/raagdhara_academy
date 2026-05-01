@@ -30,7 +30,7 @@ The system needs to know your current monthly fees so it can generate accurate i
 
 ## Step 2 — Set up each student's profile
 
-Go to **Admin → Students** and click on each student's name to open their profile. You'll need to set two things:
+Go to **Admin → Students**. Clicking a student's **name** opens their overview page (attendance stats, recent payments). To make changes, click the **"Edit Details"** button on the overview page, or click the **"Edit"** button directly in the students list. You'll need to set two things:
 
 ### 2a. Sub-batch / Group label (for attendance)
 
@@ -117,26 +117,54 @@ Test at least one login from each role before announcing to everyone:
 
 ---
 
-## Step 6 — Generate April invoices
+## Step 6 — Set up batch schedules
+
+Now that students have their group labels, set the schedule for each batch so the attendance calendar can highlight the right session days.
+
+1. In the sidebar, click **Batches**
+2. You'll see a card for each batch group (Normal A, Kids, Special Batch, Personal Classes, etc.)
+3. Click **"Set Schedule"** on a card
+4. Check the days your class meets for that batch (e.g. Monday + Wednesday)
+5. Enter the session time (e.g. `18:00` for 6 PM)
+6. Enter the duration in minutes
+7. Click **Save Schedule**
+
+Repeat for each batch card. Once saved, the attendance page will highlight those days in the calendar so you can easily navigate to previous sessions.
+
+> You can also move a student to a different batch from this page — click the ↔ icon next to their name chip.
+
+---
+
+## Step 7 — Generate April invoices
 
 The portal already has fee history from February and March loaded in. For April:
 
 1. Go to **Admin → Payments**
 2. Click **"Generate this month's invoices"** to create April invoices for all active students at once
-3. Or go to individual student profiles to generate one at a time if you prefer
+3. Or go to an individual student's overview → **Edit Details** → generate from there
 
 ---
 
 ## How to mark attendance going forward
 
 1. Go to **Admin → Attendance**
-2. Pick today's date
-3. Select the **Batch** (Normal Batch, Personal Classes)
-4. If you selected Normal Batch, a second **Group** dropdown appears — select Kids, Normal A, or Normal B
+2. The date picker is now a **calendar** — click any past date. Days that are scheduled sessions for the selected batch are highlighted in amber, making it easy to find previous class dates.
+3. Select the **Batch** (Normal Batch, Special Batch, Personal Classes). The calendar highlights update automatically to show that batch's session days.
+4. If you selected Normal Batch, a second **Group** dropdown appears — select Kids, Normal A, or Normal B. The calendar re-highlights for that specific group's schedule.
 5. Click **"All present"** to mark everyone, then flip any absent students individually
 6. Click **Save attendance**
 
+> The amber highlighting only appears once you've set a schedule for that batch in the **Batches** tab (Step 6 above). The calendar works fine without it — highlighting is just a convenience.
+
 That's it! Each session is saved with the date, and students can see their history in their portal.
+
+---
+
+## Viewing who has logged in
+
+The **Overview** page (the first page after you log in) shows a **"Recent Logins"** table at the bottom. It lists the last 20 sign-ins across all users — students, parents, and admin — with their email, role, and how long ago they logged in.
+
+This is useful for checking whether a student has actually activated their account after you sent them an invite.
 
 ---
 

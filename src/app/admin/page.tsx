@@ -3,6 +3,18 @@ import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { adminAuth, adminDb } from '@/lib/firebase/admin';
 
+function timeAgo(ts: { seconds: number } | string | Date | null): string {
+  if (!ts) return '—';
+  const seconds = typeof ts === 'object' && 'seconds' in ts
+    ? ts.seconds
+    : Math.floor(new Date(ts as string | Date).getTime() / 1000);
+  const diff = Math.floor(Date.now() / 1000) - seconds;
+  if (diff < 60) return 'just now';
+  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+  return `${Math.floor(diff / 86400)}d ago`;
+}
+
 async function getOverviewStats() {
   const cookieStore = cookies();
   const sessionCookie = cookieStore.get('session')?.value;
@@ -16,9 +28,10 @@ async function getOverviewStats() {
     redirect('/auth/login');
   }
 
-  const [studentsSnap, paymentsSnap] = await Promise.all([
+  const [studentsSnap, paymentsSnap, loginAuditSnap] = await Promise.all([
     adminDb.collection('students').get(),
     adminDb.collection('payments').where('status', 'in', ['pending', 'sent', 'overdue']).get(),
+    adminDb.collection('loginAudit').orderBy('loginAt', 'desc').limit(20).get(),
   ]);
 
   const students = studentsSnap.docs.map((d) => d.data());
@@ -26,11 +39,26 @@ async function getOverviewStats() {
   const pendingCount = students.filter((s) => s.status === 'pending').length;
   const unpaidCount = paymentsSnap.size;
 
-  return { activeCount, pendingCount, unpaidCount, totalStudents: students.length, uid };
+  const recentLogins = loginAuditSnap.docs.map((d) => {
+    const data = d.data();
+    return {
+      email: data.email as string,
+      role: data.role as string,
+      loginAt: data.loginAt as { seconds: number } | null,
+    };
+  });
+
+  return { activeCount, pendingCount, unpaidCount, totalStudents: students.length, uid, recentLogins };
 }
 
+const ROLE_BADGE: Record<string, string> = {
+  admin: 'bg-primary/10 text-primary border border-primary/20',
+  student: 'bg-green-50 text-green-700 border border-green-200',
+  parent: 'bg-indigo-50 text-indigo-700 border border-indigo-200',
+};
+
 export default async function AdminOverviewPage() {
-  const { activeCount, pendingCount, unpaidCount, totalStudents } = await getOverviewStats();
+  const { activeCount, pendingCount, unpaidCount, totalStudents, recentLogins } = await getOverviewStats();
 
   const stats = [
     {
@@ -104,7 +132,7 @@ export default async function AdminOverviewPage() {
       </div>
 
       {/* Quick actions */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
         <div className="bg-white rounded-lg border border-border p-6 shadow-warm">
           <h2 className="font-headline text-lg font-semibold text-foreground mb-4">Quick actions</h2>
           <div className="space-y-2">
@@ -146,6 +174,33 @@ export default async function AdminOverviewPage() {
             </Link>
           </div>
         </div>
+      </div>
+
+      {/* Recent Logins */}
+      <div className="bg-white rounded-lg border border-border shadow-warm overflow-hidden">
+        <div className="px-6 py-4 border-b border-border">
+          <h2 className="font-headline text-lg font-semibold text-foreground">Recent Logins</h2>
+          <p className="font-body text-xs text-muted-foreground mt-0.5">Last 20 portal sign-ins across all users</p>
+        </div>
+        {recentLogins.length === 0 ? (
+          <p className="font-body text-sm text-muted-foreground px-6 py-4">No logins recorded yet.</p>
+        ) : (
+          <div className="divide-y divide-border">
+            {recentLogins.map((entry, i) => (
+              <div key={i} className="flex items-center justify-between px-6 py-3">
+                <div className="flex items-center gap-3">
+                  <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-body font-medium capitalize ${ROLE_BADGE[entry.role] ?? ROLE_BADGE.student}`}>
+                    {entry.role}
+                  </span>
+                  <span className="font-body text-sm text-foreground">{entry.email}</span>
+                </div>
+                <span className="font-body text-xs text-muted-foreground flex-shrink-0 ml-4">
+                  {timeAgo(entry.loginAt)}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

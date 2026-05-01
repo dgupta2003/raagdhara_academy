@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
-import type { Student, AttendanceStatus } from '@/lib/firebase/types';
+import { useState, useEffect, useCallback, useMemo } from 'react';
+import type { Student, Batch, AttendanceStatus } from '@/lib/firebase/types';
+import CalendarDatePicker from '@/components/ui/CalendarDatePicker';
 
 const BATCH_OPTIONS = [
   { id: 'normal', label: 'Normal Batch' },
@@ -15,7 +16,13 @@ const STATUS_OPTIONS: { value: AttendanceStatus; label: string; style: string }[
   { value: 'excused', label: 'Excused', style: 'bg-amber-100 text-amber-700 ring-amber-400' },
 ];
 
-export default function AttendanceClient({ students }: { students: (Student & { id: string })[] }) {
+export default function AttendanceClient({
+  students,
+  batches,
+}: {
+  students: (Student & { id: string })[];
+  batches: (Batch & { id: string })[];
+}) {
   const today = new Date().toISOString().split('T')[0];
   const [date, setDate] = useState(today);
   const [batchFilter, setBatchFilter] = useState('all');
@@ -60,6 +67,15 @@ export default function AttendanceClient({ students }: { students: (Student & { 
     if (showGroupFilter && groupFilter !== 'all' && s.batchLabel !== groupFilter) return false;
     return true;
   });
+
+  // Derive session days for calendar highlighting from the matching batch doc
+  const scheduleDays = useMemo(() => {
+    if (batchFilter === 'all') return undefined;
+    const targetLabel = groupFilter === 'all' ? null : groupFilter;
+    return batches.find(
+      (b) => b.batchType === batchFilter && (b.batchLabel ?? null) === targetLabel
+    )?.daysOfWeek;
+  }, [batches, batchFilter, groupFilter]);
 
   const handleBatchChange = (val: string) => {
     setBatchFilter(val);
@@ -118,47 +134,59 @@ export default function AttendanceClient({ students }: { students: (Student & { 
   return (
     <div className="max-w-2xl">
       {/* Controls */}
-      <div className="bg-white rounded-lg border border-border shadow-warm p-5 mb-6 flex flex-wrap gap-4 items-end">
-        <div className="flex-1 min-w-40">
-          <label className="block text-xs font-medium text-muted-foreground mb-1 font-body uppercase tracking-wide">Session date</label>
-          <input
-            type="date"
-            value={date}
-            max={today}
-            onChange={(e) => { setDate(e.target.value); loadExisting(e.target.value); }}
-            className="w-full px-3 py-2 rounded-md border border-border bg-input text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-          />
-        </div>
-        <div>
-          <label className="block text-xs font-medium text-muted-foreground mb-1 font-body uppercase tracking-wide">Batch</label>
-          <select
-            value={batchFilter}
-            onChange={(e) => handleBatchChange(e.target.value)}
-            className="px-3 py-2 rounded-md border border-border bg-input text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-          >
-            <option value="all">All batches</option>
-            {BATCH_OPTIONS.map((b) => <option key={b.id} value={b.id}>{b.label}</option>)}
-          </select>
-        </div>
-        {showGroupFilter && (
-          <div>
-            <label className="block text-xs font-medium text-muted-foreground mb-1 font-body uppercase tracking-wide">Group</label>
-            <select
-              value={groupFilter}
-              onChange={(e) => { setGroupFilter(e.target.value); setSaveSuccess(false); }}
-              className="px-3 py-2 rounded-md border border-border bg-input text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-            >
-              <option value="all">All groups</option>
-              {groupsInBatch.map((g) => <option key={g} value={g}>{g}</option>)}
-            </select>
+      <div className="bg-white rounded-lg border border-border shadow-warm p-5 mb-6">
+        <div className="flex flex-wrap gap-4 items-start">
+          {/* Calendar date picker */}
+          <div className="flex-none">
+            <label className="block text-xs font-medium text-muted-foreground mb-2 font-body uppercase tracking-wide">Session date</label>
+            <CalendarDatePicker
+              value={date}
+              onChange={(d) => { setDate(d); loadExisting(d); }}
+              maxDate={today}
+              scheduleDays={scheduleDays}
+            />
           </div>
-        )}
-        <div className="flex gap-2">
-          {(['present', 'absent'] as AttendanceStatus[]).map((s) => (
-            <button key={s} onClick={() => markAll(s)} className="px-3 py-2 text-xs font-body border border-border rounded-md hover:bg-muted/50 transition-colors capitalize">
-              All {s}
-            </button>
-          ))}
+
+          {/* Batch + group filters + mark-all actions */}
+          <div className="flex flex-col gap-4 flex-1 min-w-48">
+            <div>
+              <label className="block text-xs font-medium text-muted-foreground mb-1 font-body uppercase tracking-wide">Batch</label>
+              <select
+                value={batchFilter}
+                onChange={(e) => handleBatchChange(e.target.value)}
+                className="w-full px-3 py-2 rounded-md border border-border bg-input text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+              >
+                <option value="all">All batches</option>
+                {BATCH_OPTIONS.map((b) => <option key={b.id} value={b.id}>{b.label}</option>)}
+              </select>
+            </div>
+            {showGroupFilter && (
+              <div>
+                <label className="block text-xs font-medium text-muted-foreground mb-1 font-body uppercase tracking-wide">Group</label>
+                <select
+                  value={groupFilter}
+                  onChange={(e) => { setGroupFilter(e.target.value); setSaveSuccess(false); }}
+                  className="w-full px-3 py-2 rounded-md border border-border bg-input text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                >
+                  <option value="all">All groups</option>
+                  {groupsInBatch.map((g) => <option key={g} value={g}>{g}</option>)}
+                </select>
+              </div>
+            )}
+            {scheduleDays && scheduleDays.length > 0 && (
+              <p className="font-body text-xs text-muted-foreground">
+                <span className="inline-block w-2.5 h-2.5 rounded-sm bg-amber-100 border border-amber-200 mr-1 align-middle" />
+                Highlighted dates = scheduled sessions
+              </p>
+            )}
+            <div className="flex gap-2 pt-1">
+              {(['present', 'absent'] as AttendanceStatus[]).map((s) => (
+                <button key={s} onClick={() => markAll(s)} className="px-3 py-2 text-xs font-body border border-border rounded-md hover:bg-muted/50 transition-colors capitalize">
+                  All {s}
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
       </div>
 

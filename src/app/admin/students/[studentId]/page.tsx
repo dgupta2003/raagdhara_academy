@@ -1,11 +1,11 @@
 import { cookies } from 'next/headers';
 import { redirect, notFound } from 'next/navigation';
 import { adminAuth, adminDb } from '@/lib/firebase/admin';
-import type { Student, Payment, Guardian } from '@/lib/firebase/types';
+import type { Student, Payment, Attendance } from '@/lib/firebase/types';
 import { serializeDoc } from '@/lib/firebase/serialize';
-import StudentEditClient from './StudentEditClient';
+import StudentAnalyticsClient from './StudentAnalyticsClient';
 
-async function getStudentData(studentId: string) {
+async function getStudentAnalytics(studentId: string) {
   const cookieStore = cookies();
   const sessionCookie = cookieStore.get('session')?.value;
   if (!sessionCookie) redirect('/auth/login');
@@ -16,47 +16,52 @@ async function getStudentData(studentId: string) {
     redirect('/auth/login');
   }
 
-  const [studentDoc, paymentsSnap] = await Promise.all([
+  const [studentDoc, attendanceSnap, paymentsSnap] = await Promise.all([
     adminDb.collection('students').doc(studentId).get(),
+    adminDb.collection('attendance').where('studentId', '==', studentId).get(),
     adminDb.collection('payments').where('studentId', '==', studentId).get(),
   ]);
 
   if (!studentDoc.exists) notFound();
 
   const student = serializeDoc({ id: studentDoc.id, ...(studentDoc.data() as Student) });
-  const payments = paymentsSnap.docs
+
+  const allAttendance = attendanceSnap.docs
+    .map((d) => serializeDoc({ id: d.id, ...(d.data() as Attendance) }))
+    .sort((a, b) => (b.sessionDate as string).localeCompare(a.sessionDate as string));
+
+  const total = allAttendance.length;
+  const present = allAttendance.filter((r) => r.status === 'present').length;
+  const absent = allAttendance.filter((r) => r.status === 'absent').length;
+  const excused = allAttendance.filter((r) => r.status === 'excused').length;
+  const rate = total > 0 ? Math.round((present / total) * 100) : 0;
+
+  const recentAttendance = allAttendance.slice(0, 10);
+
+  const recentPayments = paymentsSnap.docs
     .map((d) => serializeDoc({ id: d.id, ...(d.data() as Payment) }))
     .sort((a, b) => (b.dueDate as string).localeCompare(a.dueDate as string))
-    .slice(0, 3);
+    .slice(0, 5);
 
-  let guardianInfo = null;
-  if (student.guardianUid) {
-    const guardianDoc = await adminDb.collection('guardians').doc(student.guardianUid as string).get();
-    if (guardianDoc.exists) {
-      guardianInfo = serializeDoc({ id: guardianDoc.id, ...(guardianDoc.data() as Guardian) });
-    }
-  }
-
-  return { student, recentPayments: payments, guardianInfo };
+  return {
+    student,
+    attendanceStats: { total, present, absent, excused, rate },
+    recentAttendance,
+    recentPayments,
+  };
 }
 
-export default async function StudentDetailPage({ params }: { params: { studentId: string } }) {
-  const { student, recentPayments, guardianInfo } = await getStudentData(params.studentId);
+export default async function StudentOverviewPage({ params }: { params: { studentId: string } }) {
+  const { student, attendanceStats, recentAttendance, recentPayments } = await getStudentAnalytics(params.studentId);
 
   return (
-    <div className="p-8 max-w-2xl">
-      <div className="mb-6">
-        <a href="/admin/students" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors font-body mb-4">
-          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-          </svg>
-          Back to students
-        </a>
-        <h1 className="font-headline text-2xl font-semibold text-foreground">{student.displayName}</h1>
-        <p className="font-body text-sm text-muted-foreground mt-1">{student.email}</p>
-      </div>
-
-      <StudentEditClient student={student} recentPayments={recentPayments} guardianInfo={guardianInfo} />
+    <div className="p-8 max-w-4xl">
+      <StudentAnalyticsClient
+        student={student}
+        attendanceStats={attendanceStats}
+        recentAttendance={recentAttendance}
+        recentPayments={recentPayments}
+      />
     </div>
   );
 }

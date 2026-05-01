@@ -187,7 +187,9 @@ export default function StudentsClient({ students, courseLabels }: Props) {
               {filtered.map((student) => (
                 <tr key={student.id} className="hover:bg-muted/20 transition-colors">
                   <td className="px-4 py-3">
-                    <p className="font-body text-sm font-medium text-foreground">{student.displayName}</p>
+                    <Link href={`/admin/students/${student.id}`} className="font-body text-sm font-medium text-foreground hover:text-primary transition-colors">
+                      {student.displayName}
+                    </Link>
                     <p className="font-body text-xs text-muted-foreground">{student.email || <span className="text-amber-600">No email</span>}</p>
                     <p className="font-body text-xs text-muted-foreground">{student.countryCode} {student.phone}</p>
                   </td>
@@ -243,7 +245,7 @@ export default function StudentsClient({ students, courseLabels }: Props) {
                         </button>
                       )}
                       <Link
-                        href={`/admin/students/${student.id}`}
+                        href={`/admin/students/${student.id}/edit`}
                         className="px-3 py-1 text-xs font-body font-medium border border-border rounded-md hover:bg-muted/50 transition-colors"
                       >
                         Edit

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { adminAuth } from '@/lib/firebase/admin'
+import { adminAuth, adminDb } from '@/lib/firebase/admin'
+import { FieldValue } from 'firebase-admin/firestore'
 
 const SESSION_COOKIE_NAME = 'session'
 const SESSION_MAX_AGE_MS = 5 * 24 * 60 * 60 * 1000 // 5 days
@@ -14,6 +15,8 @@ export async function POST(request: NextRequest) {
   }
 
   try {
+    const decoded = await adminAuth.verifyIdToken(idToken)
+
     const sessionCookie = await adminAuth.createSessionCookie(idToken, {
       expiresIn: SESSION_MAX_AGE_MS,
     })
@@ -28,6 +31,22 @@ export async function POST(request: NextRequest) {
       path: '/',
       maxAge: SESSION_MAX_AGE_MS / 1000,
     })
+
+    // Fire-and-forget: write login audit entry
+    ;(async () => {
+      try {
+        const userDoc = await adminDb.collection('users').doc(decoded.uid).get()
+        const role = userDoc.data()?.role ?? 'student'
+        await adminDb.collection('loginAudit').add({
+          uid: decoded.uid,
+          email: decoded.email ?? '',
+          role,
+          loginAt: FieldValue.serverTimestamp(),
+        })
+      } catch (e) {
+        console.error('loginAudit write failed', e)
+      }
+    })()
 
     return response
   } catch (error) {

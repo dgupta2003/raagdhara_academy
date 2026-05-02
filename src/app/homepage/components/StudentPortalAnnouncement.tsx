@@ -74,7 +74,7 @@ export default function StudentPortalAnnouncement({ onBookConsultation }: Props)
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
           <Link
             href="/auth/login"
-            className="inline-flex items-center gap-2 px-6 py-3 bg-primary text-white text-sm font-medium rounded-full hover:bg-primary/90 transition-contemplative"
+            className="inline-flex items-center gap-2 px-6 py-3 bg-primary text-primary-foreground text-sm font-medium rounded-full hover:bg-primary/90 transition-contemplative"
           >
             Already a student? Sign in
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">

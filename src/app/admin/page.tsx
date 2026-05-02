@@ -136,20 +136,20 @@ export default async function AdminOverviewPage() {
         <div className="bg-card rounded-lg border border-border p-6 shadow-warm">
           <h2 className="font-headline text-lg font-semibold text-foreground mb-4">Quick actions</h2>
           <div className="space-y-2">
-            <Link href="/admin/students?status=pending" className="flex items-center gap-3 p-3 rounded-md hover:bg-muted/50 transition-colors group">
+            <Link href="/admin/students?status=pending" className="flex items-center gap-3 p-3 rounded-md hover:bg-muted/50 transition-contemplative group">
               <span className="w-2 h-2 rounded-full bg-amber-400 flex-shrink-0" />
-              <span className="font-body text-sm text-foreground group-hover:text-primary transition-colors">
+              <span className="font-body text-sm text-foreground group-hover:text-primary transition-contemplative">
                 Review pending student approvals
                 {pendingCount > 0 && <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs bg-amber-100 text-amber-700">{pendingCount}</span>}
               </span>
             </Link>
-            <Link href="/admin/attendance" className="flex items-center gap-3 p-3 rounded-md hover:bg-muted/50 transition-colors group">
+            <Link href="/admin/attendance" className="flex items-center gap-3 p-3 rounded-md hover:bg-muted/50 transition-contemplative group">
               <span className="w-2 h-2 rounded-full bg-primary flex-shrink-0" />
-              <span className="font-body text-sm text-foreground group-hover:text-primary transition-colors">Mark today&apos;s attendance</span>
+              <span className="font-body text-sm text-foreground group-hover:text-primary transition-contemplative">Mark today&apos;s attendance</span>
             </Link>
-            <Link href="/admin/students/new" className="flex items-center gap-3 p-3 rounded-md hover:bg-muted/50 transition-colors group">
+            <Link href="/admin/students/new" className="flex items-center gap-3 p-3 rounded-md hover:bg-muted/50 transition-contemplative group">
               <span className="w-2 h-2 rounded-full bg-green-500 flex-shrink-0" />
-              <span className="font-body text-sm text-foreground group-hover:text-primary transition-colors">Add a student directly</span>
+              <span className="font-body text-sm text-foreground group-hover:text-primary transition-contemplative">Add a student directly</span>
             </Link>
           </div>
         </div>
@@ -157,20 +157,20 @@ export default async function AdminOverviewPage() {
         <div className="bg-card rounded-lg border border-border p-6 shadow-warm">
           <h2 className="font-headline text-lg font-semibold text-foreground mb-4">Payments</h2>
           <div className="space-y-2">
-            <Link href="/admin/payments" className="flex items-center gap-3 p-3 rounded-md hover:bg-muted/50 transition-colors group">
+            <Link href="/admin/payments" className="flex items-center gap-3 p-3 rounded-md hover:bg-muted/50 transition-contemplative group">
               <span className="w-2 h-2 rounded-full bg-red-400 flex-shrink-0" />
-              <span className="font-body text-sm text-foreground group-hover:text-primary transition-colors">
+              <span className="font-body text-sm text-foreground group-hover:text-primary transition-contemplative">
                 View unpaid invoices
                 {unpaidCount > 0 && <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs bg-red-100 text-red-700">{unpaidCount}</span>}
               </span>
             </Link>
-            <Link href="/admin/payments" className="flex items-center gap-3 p-3 rounded-md hover:bg-muted/50 transition-colors group">
+            <Link href="/admin/payments" className="flex items-center gap-3 p-3 rounded-md hover:bg-muted/50 transition-contemplative group">
               <span className="w-2 h-2 rounded-full bg-primary flex-shrink-0" />
-              <span className="font-body text-sm text-foreground group-hover:text-primary transition-colors">Generate this month&apos;s invoices</span>
+              <span className="font-body text-sm text-foreground group-hover:text-primary transition-contemplative">Generate this month&apos;s invoices</span>
             </Link>
-            <Link href="/admin/settings" className="flex items-center gap-3 p-3 rounded-md hover:bg-muted/50 transition-colors group">
+            <Link href="/admin/settings" className="flex items-center gap-3 p-3 rounded-md hover:bg-muted/50 transition-contemplative group">
               <span className="w-2 h-2 rounded-full bg-muted flex-shrink-0" />
-              <span className="font-body text-sm text-foreground group-hover:text-primary transition-colors">Manage fee settings</span>
+              <span className="font-body text-sm text-foreground group-hover:text-primary transition-contemplative">Manage fee settings</span>
             </Link>
           </div>
         </div>

@@ -45,7 +45,7 @@ const HeroSection = ({ onBookConsultation }: HeroSectionProps) => {
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-20 opacity-0 animate-[fadeInUp_1s_ease-out_1s_forwards]">
             <Link
               href="/free-consultation-booking"
-              className="inline-flex items-center px-8 py-4 bg-primary text-white font-medium text-base rounded-full hover:bg-brand-brown hover:scale-105 transition-contemplative w-full sm:w-auto shadow-warm hover:shadow-warm-lg"
+              className="inline-flex items-center px-8 py-4 bg-primary text-primary-foreground font-medium text-base rounded-full hover:bg-brand-brown hover:scale-105 transition-contemplative w-full sm:w-auto shadow-warm hover:shadow-warm-lg"
             >
               BOOK FREE SESSION
               <Icon name="ArrowRightIcon" size={18} className="ml-2" />

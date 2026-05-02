@@ -146,8 +146,8 @@ export default async function ParentOverviewPage({
           href={`/parent/payments${childParam}`}
           className={`block rounded-lg border p-5 hover:shadow-warm transition-shadow ${
             latestPayment
-              ? paymentStatusColor[latestPayment.status] ?? 'border-border bg-white'
-              : 'border-border bg-white'
+              ? paymentStatusColor[latestPayment.status] ?? 'border-border bg-card'
+              : 'border-border bg-card'
           }`}
         >
           <div className="flex items-start justify-between mb-3">
@@ -174,13 +174,13 @@ export default async function ParentOverviewPage({
       <div className="bg-card rounded-lg border border-border p-6 shadow-warm">
         <h2 className="font-headline text-lg font-semibold text-foreground mb-4">Quick links</h2>
         <div className="space-y-2">
-          <Link href={`/parent/attendance${childParam}`} className="flex items-center gap-3 p-3 rounded-md hover:bg-muted/50 transition-colors group">
+          <Link href={`/parent/attendance${childParam}`} className="flex items-center gap-3 p-3 rounded-md hover:bg-muted/50 transition-contemplative group">
             <span className="w-2 h-2 rounded-full bg-primary flex-shrink-0" />
-            <span className="font-body text-sm text-foreground group-hover:text-primary transition-colors">View full attendance history</span>
+            <span className="font-body text-sm text-foreground group-hover:text-primary transition-contemplative">View full attendance history</span>
           </Link>
-          <Link href={`/parent/payments${childParam}`} className="flex items-center gap-3 p-3 rounded-md hover:bg-muted/50 transition-colors group">
+          <Link href={`/parent/payments${childParam}`} className="flex items-center gap-3 p-3 rounded-md hover:bg-muted/50 transition-contemplative group">
             <span className="w-2 h-2 rounded-full bg-primary flex-shrink-0" />
-            <span className="font-body text-sm text-foreground group-hover:text-primary transition-colors">View and pay invoices</span>
+            <span className="font-body text-sm text-foreground group-hover:text-primary transition-contemplative">View and pay invoices</span>
           </Link>
         </div>
       </div>

@@ -16,6 +16,12 @@ export interface User {
   createdAt: FirestoreTimestamp
 }
 
+export interface BatchSession {
+  dayOfWeek: number   // 0=Sun … 6=Sat
+  time: string        // HH:MM
+  durationMinutes: number
+}
+
 export interface Student {
   uid: string
   email: string
@@ -27,6 +33,7 @@ export interface Student {
   courseId: string
   batchType: string
   batchLabel?: string
+  personalSchedule?: BatchSession[]  // per-student schedule for personal batch
   status: StudentStatus
   enrollmentDate: FirestoreTimestamp
   customFeeOverride?: number
@@ -75,6 +82,7 @@ export interface Payment {
   dueDate: FirestoreTimestamp
   paidAt?: FirestoreTimestamp
   reminderSentAt?: FirestoreTimestamp
+  markedPaidManually?: boolean
   createdAt: FirestoreTimestamp
   updatedAt: FirestoreTimestamp
 }

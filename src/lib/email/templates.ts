@@ -279,6 +279,135 @@ export function guardianInviteEmail(data: GuardianInviteEmailData): string {
   return baseLayout(`Parent Portal Access — ${data.studentName} at Raagdhara`, body);
 }
 
+// ── Payment email templates ──────────────────────────────────────────────────
+
+export interface InvoiceRaisedEmailData {
+  studentName: string;
+  amount: string;       // pre-formatted, e.g. "₹1,241" or "$30"
+  dueDate: string;      // human-readable, e.g. "1 May 2026"
+  portalUrl: string;
+}
+
+export function invoiceRaisedEmail(data: InvoiceRaisedEmailData): string {
+  const body = `
+    <h1 style="margin:0 0 8px;font-size:22px;color:${BRAND_BROWN};">New invoice from Raagdhara Academy</h1>
+    <p style="margin:0 0 24px;font-size:15px;color:#555555;line-height:1.6;">
+      Hi ${data.studentName}, a new invoice has been raised for your upcoming month of classes.
+    </p>
+
+    <table width="100%" cellpadding="0" cellspacing="0" style="background-color:${BRAND_BG};border-radius:6px;padding:16px 20px;margin-bottom:24px;">
+      <tr><td colspan="2" style="padding-bottom:10px;font-size:12px;font-weight:bold;color:${BRAND_BROWN};letter-spacing:1px;text-transform:uppercase;">Invoice details</td></tr>
+      ${detailRow('Amount due', data.amount)}
+      ${detailRow('Due date', data.dueDate)}
+    </table>
+
+    <p style="margin:0 0 20px;font-size:14px;color:#555555;line-height:1.6;">
+      Please sign in to the portal to pay online, or use the UPI QR shared by Vaishnavi.
+    </p>
+
+    ${ctaButton('Pay Now', data.portalUrl)}
+
+    <div style="margin:28px 0 0;padding-top:20px;border-top:1px solid #eeeeee;">
+      <p style="margin:0;font-size:13px;color:#888888;">With warm regards,<br/><strong style="color:${BRAND_BROWN};">Vaishnavi Gupta</strong><br/>Raagdhara Music Academy</p>
+    </div>
+  `;
+  return baseLayout('New Invoice — Raagdhara Music Academy', body);
+}
+
+export interface InvoicePaidAdminEmailData {
+  studentName: string;
+  studentEmail: string;
+  amount: string;
+  paidAt: string;      // human-readable datetime
+  method: 'razorpay' | 'manual';
+}
+
+export function invoicePaidAdminEmail(data: InvoicePaidAdminEmailData): string {
+  const body = `
+    <h1 style="margin:0 0 8px;font-size:20px;color:${BRAND_BROWN};">Payment received</h1>
+    <p style="margin:0 0 24px;font-size:14px;color:#555555;">An invoice has been marked as paid. Details below.</p>
+
+    <table width="100%" cellpadding="0" cellspacing="0" style="background-color:${BRAND_BG};border-radius:6px;padding:16px 20px;margin-bottom:24px;">
+      ${detailRow('Student', data.studentName)}
+      ${detailRow('Email', data.studentEmail)}
+      ${detailRow('Amount', data.amount)}
+      ${detailRow('Paid at', data.paidAt)}
+      ${detailRow('Method', data.method === 'razorpay' ? 'Razorpay (online)' : 'Manually marked')}
+    </table>
+
+    <p style="margin:0;font-size:13px;color:#888888;">View the full record in the admin payments dashboard.</p>
+  `;
+  return baseLayout('Payment Received — Raagdhara Academy', body);
+}
+
+export interface PaymentReminderEmailData {
+  studentName: string;
+  amount: string;
+  dueDate: string;
+  daysOverdue?: number;   // if set, invoice is overdue by this many days
+  portalUrl: string;
+}
+
+export function paymentReminderEmail(data: PaymentReminderEmailData): string {
+  const isOverdue = (data.daysOverdue ?? 0) > 0;
+  const subject = isOverdue
+    ? `Overdue invoice — ${data.daysOverdue} day${data.daysOverdue !== 1 ? 's' : ''} past due`
+    : 'Friendly reminder — invoice due soon';
+
+  const body = `
+    <h1 style="margin:0 0 8px;font-size:22px;color:${isOverdue ? '#B91C1C' : BRAND_BROWN};">
+      ${isOverdue ? `Invoice overdue by ${data.daysOverdue} day${data.daysOverdue !== 1 ? 's' : ''}` : 'Friendly payment reminder'}
+    </h1>
+    <p style="margin:0 0 24px;font-size:15px;color:#555555;line-height:1.6;">
+      Hi ${data.studentName}, ${isOverdue
+        ? `your invoice of <strong>${data.amount}</strong> was due on <strong>${data.dueDate}</strong> and is now overdue. Please make payment at your earliest convenience to avoid any interruption to your classes.`
+        : `this is a friendly reminder that your invoice of <strong>${data.amount}</strong> is due on <strong>${data.dueDate}</strong>.`
+      }
+    </p>
+
+    <table width="100%" cellpadding="0" cellspacing="0" style="background-color:${BRAND_BG};border-radius:6px;padding:16px 20px;margin-bottom:24px;">
+      ${detailRow('Amount due', data.amount)}
+      ${detailRow('Due date', data.dueDate)}
+      ${isOverdue ? detailRow('Status', `Overdue by ${data.daysOverdue} day${data.daysOverdue !== 1 ? 's' : ''}`) : ''}
+    </table>
+
+    ${ctaButton('Pay Now', data.portalUrl)}
+
+    <div style="margin:28px 0 0;padding-top:20px;border-top:1px solid #eeeeee;">
+      <p style="margin:0;font-size:13px;color:#888888;">With warm regards,<br/><strong style="color:${BRAND_BROWN};">Vaishnavi Gupta</strong><br/>Raagdhara Music Academy</p>
+    </div>
+  `;
+  return baseLayout(subject, body);
+}
+
+export interface PaymentOverdueAdminEmailData {
+  studentName: string;
+  studentEmail: string;
+  amount: string;
+  dueDate: string;
+  daysOverdue: number;
+}
+
+export function paymentOverdueAdminEmail(data: PaymentOverdueAdminEmailData): string {
+  const body = `
+    <h1 style="margin:0 0 8px;font-size:20px;color:#B91C1C;">Overdue invoice alert</h1>
+    <p style="margin:0 0 24px;font-size:14px;color:#555555;">The following invoice is overdue. A reminder has been sent to the student.</p>
+
+    <table width="100%" cellpadding="0" cellspacing="0" style="background-color:${BRAND_BG};border-radius:6px;padding:16px 20px;margin-bottom:24px;">
+      ${detailRow('Student', data.studentName)}
+      ${detailRow('Email', data.studentEmail)}
+      ${detailRow('Amount', data.amount)}
+      ${detailRow('Due date', data.dueDate)}
+      ${detailRow('Overdue by', `${data.daysOverdue} day${data.daysOverdue !== 1 ? 's' : ''}`)}
+    </table>
+
+    <p style="margin:0;font-size:13px;color:#888888;">Follow up directly with the student or mark as paid once received.</p>
+  `;
+  return baseLayout('Overdue Invoice — Raagdhara Academy', body);
+}
+
+// ── Consultation email templates ─────────────────────────────────────────────
+
 export function consultationAdminNotificationEmail(data: ConsultationEmailData): string {
   const body = `
     <h1 style="margin:0 0 8px;font-size:20px;color:${BRAND_BROWN};">New consultation booking</h1>

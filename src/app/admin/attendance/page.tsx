@@ -1,7 +1,7 @@
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { adminAuth, adminDb } from '@/lib/firebase/admin';
-import type { Student, Batch } from '@/lib/firebase/types';
+import type { Student } from '@/lib/firebase/types';
 import { serializeDoc } from '@/lib/firebase/serialize';
 import AttendanceClient from './AttendanceClient';
 
@@ -15,23 +15,17 @@ async function getAttendanceData() {
     redirect('/auth/login');
   }
 
-  const [studentsSnap, batchesSnap] = await Promise.all([
-    adminDb.collection('students').where('status', '==', 'active').get(),
-    adminDb.collection('batches').get(),
-  ]);
+  const studentsSnap = await adminDb.collection('students').where('status', '==', 'active').get();
 
   const students = studentsSnap.docs.map((d) =>
     serializeDoc({ id: d.id, ...(d.data() as Student) })
   );
-  const batches = batchesSnap.docs.map((d) =>
-    serializeDoc({ id: d.id, ...(d.data() as Batch) })
-  );
 
-  return { students, batches };
+  return { students };
 }
 
 export default async function AttendancePage() {
-  const { students, batches } = await getAttendanceData();
+  const { students } = await getAttendanceData();
 
   return (
     <div className="p-8">
@@ -39,7 +33,7 @@ export default async function AttendancePage() {
         <h1 className="font-headline text-2xl font-semibold text-foreground">Attendance</h1>
         <p className="font-body text-sm text-muted-foreground mt-1">Mark attendance for a session. Select a date and batch, then mark each student.</p>
       </div>
-      <AttendanceClient students={students} batches={batches} />
+      <AttendanceClient students={students} />
     </div>
   );
 }

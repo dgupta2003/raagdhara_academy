@@ -3,7 +3,7 @@
 import { useState, useMemo } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import type { Student, Batch } from '@/lib/firebase/types';
+import type { Student, Batch, BatchSession } from '@/lib/firebase/types';
 
 const DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const DAY_FULL = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
@@ -14,6 +14,8 @@ const BATCH_TYPE_LABELS: Record<string, string> = {
   special: 'Special Batch',
   personal: 'Personal Classes',
 };
+
+type CategoryFilter = 'all' | 'normal' | 'special' | 'personal';
 
 interface BatchGroup {
   batchType: string;
@@ -37,6 +39,8 @@ interface ScheduleForm {
   displayName: string;
 }
 
+const emptySession = (): BatchSession => ({ dayOfWeek: 1, time: '18:00', durationMinutes: 45 });
+
 export default function BatchesClient({
   students,
   batches,
@@ -45,6 +49,7 @@ export default function BatchesClient({
   batches: (Batch & { id: string })[];
 }) {
   const router = useRouter();
+  const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>('all');
   const [editingGroupKey, setEditingGroupKey] = useState<string | null>(null);
   const [scheduleForm, setScheduleForm] = useState<ScheduleForm>({ daysOfWeek: [], sessionTime: '18:00', sessionDurationMinutes: 45, displayName: '' });
   const [scheduleLoading, setScheduleLoading] = useState(false);
@@ -53,20 +58,32 @@ export default function BatchesClient({
   const [moveLoading, setMoveLoading] = useState(false);
   const [moveError, setMoveError] = useState('');
 
+  // Personal schedule editing state (per studentId)
+  const [editingPersonalId, setEditingPersonalId] = useState<string | null>(null);
+  const [personalSessions, setPersonalSessions] = useState<BatchSession[]>([]);
+  const [personalLoading, setPersonalLoading] = useState(false);
+  const [personalError, setPersonalError] = useState('');
+
   // Derive batch groups from students
   const groups = useMemo<BatchGroup[]>(() => {
     const map = new Map<string, BatchGroup>();
 
     students.forEach((s) => {
-      const key = `${s.batchType}__${s.batchLabel ?? ''}`;
+      // Personal batch: one card per student
+      const key = s.batchType === 'personal'
+        ? `personal__${s.id}`
+        : `${s.batchType}__${s.batchLabel ?? ''}`;
+
       if (!map.has(key)) {
         const label = s.batchLabel ?? null;
         const typeName = BATCH_TYPE_LABELS[s.batchType] ?? s.batchType;
-        const displayName = label ? `${typeName} — ${label}` : typeName;
-        const batchDoc = batches.find(
-          (b) => b.batchType === s.batchType && (b.batchLabel ?? null) === label
-        ) ?? null;
-        map.set(key, { batchType: s.batchType, batchLabel: label, displayName, students: [], batchDoc });
+        const displayName = s.batchType === 'personal'
+          ? `${typeName} — ${s.displayName}`
+          : label ? `${typeName} — ${label}` : typeName;
+        const batchDoc = s.batchType === 'personal'
+          ? null
+          : (batches.find((b) => b.batchType === s.batchType && (b.batchLabel ?? null) === label) ?? null);
+        map.set(key, { batchType: s.batchType, batchLabel: s.batchType === 'personal' ? s.id : label, displayName, students: [], batchDoc });
       }
       map.get(key)!.students.push(s);
     });
@@ -79,15 +96,24 @@ export default function BatchesClient({
     });
   }, [students, batches]);
 
-  // All available groups for the move-batch dropdown
-  const allGroupOptions = groups.map((g) => ({
-    batchType: g.batchType,
-    batchLabel: g.batchLabel ?? '',
-    displayName: g.displayName,
-  }));
+  const filteredGroups = useMemo(() => {
+    if (categoryFilter === 'all') return groups;
+    return groups.filter((g) => g.batchType === categoryFilter);
+  }, [groups, categoryFilter]);
+
+  // All available groups for the move-batch dropdown (excludes personal — personal students get their own group key)
+  const allGroupOptions = groups
+    .filter((g) => g.batchType !== 'personal')
+    .map((g) => ({
+      batchType: g.batchType,
+      batchLabel: g.batchLabel ?? '',
+      displayName: g.displayName,
+    }));
+  // Also include a generic "Personal Classes" option
+  allGroupOptions.push({ batchType: 'personal', batchLabel: '', displayName: 'Personal Classes' });
 
   const groupKey = (batchType: string, batchLabel: string | null) =>
-    `${batchType}__${batchLabel ?? ''}`;
+    batchType === 'personal' ? `personal__${batchLabel ?? ''}` : `${batchType}__${batchLabel ?? ''}`;
 
   const openScheduleForm = (group: BatchGroup) => {
     const key = groupKey(group.batchType, group.batchLabel);
@@ -150,6 +176,46 @@ export default function BatchesClient({
     }
   };
 
+  // Personal schedule helpers
+  const openPersonalEditor = (student: Student & { id: string }) => {
+    setEditingPersonalId(student.id);
+    setPersonalSessions(student.personalSchedule?.length ? [...student.personalSchedule] : [emptySession()]);
+    setPersonalError('');
+  };
+
+  const updateSession = (idx: number, field: keyof BatchSession, value: number | string) => {
+    setPersonalSessions((prev) => prev.map((s, i) => i === idx ? { ...s, [field]: value } : s));
+  };
+
+  const addSession = () => setPersonalSessions((prev) => [...prev, emptySession()]);
+
+  const removeSession = (idx: number) => {
+    setPersonalSessions((prev) => prev.filter((_, i) => i !== idx));
+  };
+
+  const savePersonalSchedule = async (studentId: string) => {
+    if (personalSessions.length === 0) {
+      setPersonalError('Add at least one session.');
+      return;
+    }
+    setPersonalLoading(true);
+    setPersonalError('');
+    try {
+      const res = await fetch(`/api/admin/students/${studentId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ personalSchedule: personalSessions }),
+      });
+      if (!res.ok) throw new Error((await res.json()).error ?? 'Failed to save');
+      setEditingPersonalId(null);
+      router.refresh();
+    } catch (e) {
+      setPersonalError((e as Error).message);
+    } finally {
+      setPersonalLoading(false);
+    }
+  };
+
   const openMoveModal = (student: Student & { id: string }) => {
     setMovingState({
       studentId: student.id,
@@ -191,12 +257,46 @@ export default function BatchesClient({
     );
   }
 
+  const CATEGORY_TABS: { key: CategoryFilter; label: string }[] = [
+    { key: 'all', label: 'All' },
+    { key: 'normal', label: 'Normal' },
+    { key: 'special', label: 'Special' },
+    { key: 'personal', label: 'Personal' },
+  ];
+
   return (
     <div className="space-y-6">
-      {groups.map((group) => {
+      {/* Category filter */}
+      <div className="flex gap-1 bg-muted/40 rounded-lg p-1 w-fit">
+        {CATEGORY_TABS.map((tab) => (
+          <button
+            key={tab.key}
+            onClick={() => setCategoryFilter(tab.key)}
+            className={`px-3 py-1.5 rounded-md text-sm font-body transition-contemplative ${
+              categoryFilter === tab.key
+                ? 'bg-white text-foreground shadow-sm'
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      {filteredGroups.length === 0 && (
+        <div className="bg-white rounded-lg border border-border shadow-warm p-12 text-center">
+          <p className="font-body text-muted-foreground">No batches in this category.</p>
+        </div>
+      )}
+
+      {filteredGroups.map((group) => {
         const key = groupKey(group.batchType, group.batchLabel);
         const isEditing = editingGroupKey === key;
         const doc = group.batchDoc;
+        const isPersonal = group.batchType === 'personal';
+        // For personal, batchLabel is the student's ID
+        const personalStudent = isPersonal ? group.students[0] : null;
+        const isEditingPersonal = isPersonal && editingPersonalId === personalStudent?.id;
 
         return (
           <div key={key} className="bg-white rounded-lg border border-border shadow-warm overflow-hidden">
@@ -204,20 +304,31 @@ export default function BatchesClient({
             <div className="px-6 py-4 border-b border-border flex items-center justify-between">
               <div>
                 <h2 className="font-headline text-lg font-semibold text-foreground">{group.displayName}</h2>
-                <p className="font-body text-xs text-muted-foreground mt-0.5">
-                  {group.students.length} student{group.students.length !== 1 ? 's' : ''}
-                </p>
+                {!isPersonal && (
+                  <p className="font-body text-xs text-muted-foreground mt-0.5">
+                    {group.students.length} student{group.students.length !== 1 ? 's' : ''}
+                  </p>
+                )}
               </div>
-              <button
-                onClick={() => isEditing ? setEditingGroupKey(null) : openScheduleForm(group)}
-                className="px-3 py-1.5 text-xs font-body font-medium border border-border rounded-md hover:bg-muted/50 transition-colors"
-              >
-                {isEditing ? 'Cancel' : doc ? 'Edit Schedule' : 'Set Schedule'}
-              </button>
+              {isPersonal ? (
+                <button
+                  onClick={() => isEditingPersonal ? setEditingPersonalId(null) : personalStudent && openPersonalEditor(personalStudent)}
+                  className="px-3 py-1.5 text-xs font-body font-medium border border-border rounded-md hover:bg-muted/50 transition-colors"
+                >
+                  {isEditingPersonal ? 'Cancel' : personalStudent?.personalSchedule?.length ? 'Edit Schedule' : 'Set Schedule'}
+                </button>
+              ) : (
+                <button
+                  onClick={() => isEditing ? setEditingGroupKey(null) : openScheduleForm(group)}
+                  className="px-3 py-1.5 text-xs font-body font-medium border border-border rounded-md hover:bg-muted/50 transition-colors"
+                >
+                  {isEditing ? 'Cancel' : doc ? 'Edit Schedule' : 'Set Schedule'}
+                </button>
+              )}
             </div>
 
-            {/* Schedule display */}
-            {!isEditing && (
+            {/* Schedule display — normal/special */}
+            {!isPersonal && !isEditing && (
               <div className="px-6 py-3 border-b border-border bg-muted/20 flex flex-wrap items-center gap-3">
                 {doc ? (
                   <>
@@ -237,8 +348,29 @@ export default function BatchesClient({
               </div>
             )}
 
-            {/* Schedule edit form */}
-            {isEditing && (
+            {/* Personal schedule display */}
+            {isPersonal && !isEditingPersonal && personalStudent && (
+              <div className="px-6 py-3 border-b border-border bg-muted/20">
+                {personalStudent.personalSchedule?.length ? (
+                  <div className="flex flex-wrap gap-3">
+                    {personalStudent.personalSchedule.map((s, i) => (
+                      <div key={i} className="flex items-center gap-1.5">
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-body font-medium bg-primary/10 text-primary border border-primary/20">
+                          {DAY_FULL[s.dayOfWeek]}
+                        </span>
+                        <span className="font-body text-sm text-foreground">{s.time}</span>
+                        <span className="font-body text-xs text-muted-foreground">· {s.durationMinutes} min</span>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="font-body text-xs text-muted-foreground italic">No schedule set — click &quot;Set Schedule&quot; to add sessions.</p>
+                )}
+              </div>
+            )}
+
+            {/* Normal/special schedule edit form */}
+            {!isPersonal && isEditing && (
               <div className="px-6 py-4 border-b border-border bg-amber-50/40">
                 <div className="space-y-4 max-w-md">
                   <div>
@@ -294,30 +426,123 @@ export default function BatchesClient({
               </div>
             )}
 
-            {/* Students */}
-            <div className="px-6 py-4">
-              <div className="flex flex-wrap gap-2">
-                {group.students.map((student) => (
-                  <div key={student.id} className="flex items-center gap-1 bg-muted/50 border border-border rounded-full pl-3 pr-1 py-1">
-                    <Link
-                      href={`/admin/students/${student.id}`}
-                      className="font-body text-sm text-foreground hover:text-primary transition-colors"
-                    >
-                      {student.displayName}
-                    </Link>
-                    <button
-                      onClick={() => openMoveModal(student)}
-                      title="Move to another batch"
-                      className="ml-1 p-0.5 rounded-full text-muted-foreground hover:text-primary hover:bg-muted transition-colors"
-                    >
-                      <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
-                      </svg>
-                    </button>
-                  </div>
-                ))}
+            {/* Personal schedule editor */}
+            {isPersonal && isEditingPersonal && personalStudent && (
+              <div className="px-6 py-4 border-b border-border bg-amber-50/40">
+                <div className="space-y-3 max-w-lg">
+                  <label className="block text-xs font-body font-medium text-muted-foreground uppercase tracking-wide">Sessions this week</label>
+                  {personalSessions.map((session, idx) => (
+                    <div key={idx} className="flex items-center gap-3 bg-white rounded-md border border-border p-3">
+                      <div className="flex-1">
+                        <label className="block text-xs font-body text-muted-foreground mb-1">Day</label>
+                        <select
+                          value={session.dayOfWeek}
+                          onChange={(e) => updateSession(idx, 'dayOfWeek', parseInt(e.target.value))}
+                          className="w-full px-2 py-1.5 rounded border border-border bg-input text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                        >
+                          {DAY_FULL.map((d, i) => (
+                            <option key={i} value={i}>{d}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-body text-muted-foreground mb-1">Time</label>
+                        <input
+                          type="time"
+                          value={session.time}
+                          onChange={(e) => updateSession(idx, 'time', e.target.value)}
+                          className="px-2 py-1.5 rounded border border-border bg-input text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-body text-muted-foreground mb-1">Duration (min)</label>
+                        <input
+                          type="number"
+                          min={15}
+                          max={180}
+                          value={session.durationMinutes}
+                          onChange={(e) => updateSession(idx, 'durationMinutes', parseInt(e.target.value) || 45)}
+                          className="w-20 px-2 py-1.5 rounded border border-border bg-input text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                        />
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => removeSession(idx)}
+                        className="mt-5 p-1 rounded text-muted-foreground hover:text-red-600 hover:bg-red-50 transition-colors"
+                        title="Remove session"
+                      >
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </button>
+                    </div>
+                  ))}
+                  <button
+                    type="button"
+                    onClick={addSession}
+                    className="px-3 py-1.5 text-xs font-body border border-dashed border-primary/40 text-primary rounded-md hover:bg-primary/5 transition-colors"
+                  >
+                    + Add another session
+                  </button>
+                  {personalError && <p className="text-xs text-red-600 font-body">{personalError}</p>}
+                  <button
+                    onClick={() => savePersonalSchedule(personalStudent.id)}
+                    disabled={personalLoading}
+                    className="px-4 py-2 bg-primary text-primary-foreground text-sm font-body font-medium rounded-md hover:bg-primary/90 disabled:opacity-60 transition-contemplative"
+                  >
+                    {personalLoading ? 'Saving…' : 'Save Schedule'}
+                  </button>
+                </div>
               </div>
-            </div>
+            )}
+
+            {/* Students — for non-personal groups */}
+            {!isPersonal && (
+              <div className="px-6 py-4">
+                <div className="flex flex-wrap gap-2">
+                  {group.students.map((student) => (
+                    <div key={student.id} className="flex items-center gap-1 bg-muted/50 border border-border rounded-full pl-3 pr-1 py-1">
+                      <Link
+                        href={`/admin/students/${student.id}`}
+                        className="font-body text-sm text-foreground hover:text-primary transition-colors"
+                      >
+                        {student.displayName}
+                      </Link>
+                      <button
+                        onClick={() => openMoveModal(student)}
+                        title="Move to another batch"
+                        className="ml-1 p-0.5 rounded-full text-muted-foreground hover:text-primary hover:bg-muted transition-colors"
+                      >
+                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                        </svg>
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Personal card — link + move button */}
+            {isPersonal && personalStudent && (
+              <div className="px-6 py-4 flex items-center justify-between">
+                <Link
+                  href={`/admin/students/${personalStudent.id}`}
+                  className="font-body text-sm text-foreground hover:text-primary transition-colors"
+                >
+                  {personalStudent.displayName}
+                </Link>
+                <button
+                  onClick={() => openMoveModal(personalStudent)}
+                  title="Move to another batch"
+                  className="p-1 rounded text-muted-foreground hover:text-primary hover:bg-muted transition-colors"
+                >
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                  </svg>
+                </button>
+              </div>
+            )}
           </div>
         );
       })}

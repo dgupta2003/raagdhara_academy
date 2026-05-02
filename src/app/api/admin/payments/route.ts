@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import { FieldValue } from 'firebase-admin/firestore'
+import { Resend } from 'resend'
 import { adminAuth, adminDb } from '@/lib/firebase/admin'
-import type { Student, Settings } from '@/lib/firebase/types'
+import type { Student, Settings, Guardian } from '@/lib/firebase/types'
 import { resolveStudentFee } from '@/lib/payments/calculator'
+import { invoiceRaisedEmail, invoicePaidAdminEmail } from '@/lib/email/templates'
 
 const DEFAULT_SETTINGS: Settings = {
   defaultPaymentDay: 1,
@@ -14,6 +16,19 @@ const DEFAULT_SETTINGS: Settings = {
   },
   reminderDaysAfterDue: 3,
   updatedAt: new Date().toISOString(),
+}
+
+const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
+
+function formatAmountForEmail(amount: number, currency: string): string {
+  if (currency === 'USD') return `$${amount}`
+  const rupees = Math.round(amount / 100)
+  return `₹${rupees.toLocaleString('en-IN')}`
+}
+
+function formatDateForEmail(dateStr: string): string {
+  const [year, month, day] = dateStr.split('-')
+  return `${parseInt(day)} ${MONTHS[parseInt(month) - 1]} ${year}`
 }
 
 async function verifyAdmin(): Promise<boolean> {
@@ -39,8 +54,6 @@ function buildDueDate(paymentDay: number, month?: string): string {
 }
 
 async function alreadyHasPayment(studentId: string, month: string): Promise<boolean> {
-  // Single-field equality query only — no composite index needed.
-  // Filter by month prefix in JS (dueDate is stored as YYYY-MM-DD string).
   const snap = await adminDb
     .collection('payments')
     .where('studentId', '==', studentId)
@@ -49,6 +62,50 @@ async function alreadyHasPayment(studentId: string, month: string): Promise<bool
     const dueDate = d.data().dueDate as string | undefined
     return typeof dueDate === 'string' && dueDate.startsWith(month)
   })
+}
+
+// Fire-and-forget: send invoice raised email to student + linked parent
+async function sendInvoiceRaisedEmails(
+  student: Student & { id: string },
+  amount: number,
+  currency: string,
+  dueDate: string
+): Promise<void> {
+  const resend = new Resend(process.env.RESEND_API_KEY)
+  const portalUrl = 'https://raagdhara.com/student'
+  const amountStr = formatAmountForEmail(amount, currency)
+  const dueDateStr = formatDateForEmail(dueDate)
+  const html = invoiceRaisedEmail({ studentName: student.displayName, amount: amountStr, dueDate: dueDateStr, portalUrl })
+
+  const recipients = [student.email]
+
+  // Find parent email if linked
+  if (student.guardianUid) {
+    try {
+      const guardianSnap = await adminDb
+        .collection('guardians')
+        .where('uid', '==', student.guardianUid)
+        .limit(1)
+        .get()
+      if (!guardianSnap.empty) {
+        const guardian = guardianSnap.docs[0].data() as Guardian
+        if (guardian.email && !recipients.includes(guardian.email)) {
+          recipients.push(guardian.email)
+        }
+      }
+    } catch {
+      // silently skip guardian lookup failure
+    }
+  }
+
+  for (const email of recipients) {
+    resend.emails.send({
+      from: 'Raagdhara Music Academy <noreply@raagdhara.com>',
+      to: email,
+      subject: `New invoice: ${amountStr} due ${dueDateStr}`,
+      html,
+    }).catch((err: unknown) => console.error('Invoice email failed:', err))
+  }
 }
 
 async function createPaymentForStudent(
@@ -73,6 +130,12 @@ async function createPaymentForStudent(
     createdAt: FieldValue.serverTimestamp(),
     updatedAt: FieldValue.serverTimestamp(),
   })
+
+  // Fire-and-forget email
+  sendInvoiceRaisedEmails(student, amount, currency, dueDate).catch((err: unknown) =>
+    console.error('sendInvoiceRaisedEmails error:', err)
+  )
+
   return 'created'
 }
 
@@ -110,7 +173,7 @@ export async function POST(request: NextRequest) {
     const { studentId, bulk, month } = body as {
       studentId?: string
       bulk?: boolean
-      month?: string // YYYY-MM, defaults to current month
+      month?: string
     }
 
     const targetMonth = month ?? new Date().toISOString().slice(0, 7)
@@ -150,6 +213,56 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ created: result === 'created' ? 1 : 0, skipped: result === 'skipped' ? 1 : 0 })
   } catch (err) {
     console.error('Admin payments POST error:', err)
+    return NextResponse.json({ error: (err as Error).message ?? 'Internal server error' }, { status: 500 })
+  }
+}
+
+export async function PATCH(request: NextRequest) {
+  if (!(await verifyAdmin())) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
+  try {
+    const { paymentId } = await request.json() as { paymentId: string }
+    if (!paymentId) return NextResponse.json({ error: 'paymentId required' }, { status: 400 })
+
+    const ref = adminDb.collection('payments').doc(paymentId)
+    const doc = await ref.get()
+    if (!doc.exists) return NextResponse.json({ error: 'Payment not found' }, { status: 404 })
+
+    const payment = doc.data()!
+    if (payment.status === 'paid') {
+      return NextResponse.json({ error: 'Invoice is already marked as paid' }, { status: 400 })
+    }
+
+    const paidAt = new Date()
+    await ref.update({
+      status: 'paid',
+      paidAt,
+      markedPaidManually: true,
+      updatedAt: FieldValue.serverTimestamp(),
+    })
+
+    // Notify admin
+    const resend = new Resend(process.env.RESEND_API_KEY)
+    const adminEmail = process.env.ADMIN_EMAIL ?? 'raagdharamusic@gmail.com'
+    const amountStr = formatAmountForEmail(payment.amount as number, payment.currency as string)
+    resend.emails.send({
+      from: 'Raagdhara Music Academy <noreply@raagdhara.com>',
+      to: adminEmail,
+      subject: `Payment received: ${payment.studentName} — ${amountStr}`,
+      html: invoicePaidAdminEmail({
+        studentName: payment.studentName as string,
+        studentEmail: payment.studentEmail as string,
+        amount: amountStr,
+        paidAt: paidAt.toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }),
+        method: 'manual',
+      }),
+    }).catch((err: unknown) => console.error('Admin paid email failed:', err))
+
+    return NextResponse.json({ success: true })
+  } catch (err) {
+    console.error('Admin payments PATCH error:', err)
     return NextResponse.json({ error: (err as Error).message ?? 'Internal server error' }, { status: 500 })
   }
 }

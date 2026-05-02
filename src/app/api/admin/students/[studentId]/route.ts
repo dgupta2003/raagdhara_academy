@@ -35,6 +35,9 @@ export async function PUT(
   if (body.batchType) update.batchType = body.batchType;
   if (body.batchLabel !== undefined) update.batchLabel = body.batchLabel || null;
   if (body.category) update.category = body.category;
+  if (body.personalSchedule !== undefined) {
+    update.personalSchedule = Array.isArray(body.personalSchedule) ? body.personalSchedule : null;
+  }
   if (body.customFeeOverride !== undefined) {
     update.customFeeOverride = body.customFeeOverride ?? null;
   }

@@ -3,10 +3,11 @@
 import { useState, useMemo } from 'react';
 
 interface CalendarDatePickerProps {
-  value: string;           // YYYY-MM-DD
+  value: string;               // YYYY-MM-DD
   onChange: (date: string) => void;
-  maxDate?: string;        // YYYY-MM-DD, defaults to today
-  scheduleDays?: number[]; // 0=Sun … 6=Sat; highlighted as session days
+  onMonthChange?: (year: number, month: number) => void; // 0-based month
+  maxDate?: string;            // YYYY-MM-DD, defaults to today
+  highlightedDates?: string[]; // YYYY-MM-DD dates to highlight amber (actual session dates)
 }
 
 const DAY_HEADERS = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
@@ -27,8 +28,9 @@ function toYMD(year: number, month: number, day: number): string {
 export default function CalendarDatePicker({
   value,
   onChange,
+  onMonthChange,
   maxDate,
-  scheduleDays,
+  highlightedDates,
 }: CalendarDatePickerProps) {
   const todayStr = new Date().toISOString().split('T')[0];
   const effectiveMax = maxDate ?? todayStr;
@@ -40,6 +42,12 @@ export default function CalendarDatePicker({
 
   const selected = value ? parseYMD(value) : null;
   const today = parseYMD(todayStr);
+
+  // Build a set of highlighted date strings for O(1) lookup
+  const highlightSet = useMemo(
+    () => new Set(highlightedDates ?? []),
+    [highlightedDates]
+  );
 
   // Number of days in the viewed month
   const daysInMonth = useMemo(
@@ -57,13 +65,21 @@ export default function CalendarDatePicker({
     viewYear < max.year || (viewYear === max.year && viewMonth < max.month);
 
   const goNext = () => {
-    if (viewMonth === 11) { setViewMonth(0); setViewYear((y) => y + 1); }
-    else setViewMonth((m) => m + 1);
+    let y = viewYear;
+    let m = viewMonth;
+    if (m === 11) { m = 0; y += 1; } else m += 1;
+    setViewMonth(m);
+    setViewYear(y);
+    onMonthChange?.(y, m);
   };
 
   const goPrev = () => {
-    if (viewMonth === 0) { setViewMonth(11); setViewYear((y) => y - 1); }
-    else setViewMonth((m) => m - 1);
+    let y = viewYear;
+    let m = viewMonth;
+    if (m === 0) { m = 11; y -= 1; } else m -= 1;
+    setViewMonth(m);
+    setViewYear(y);
+    onMonthChange?.(y, m);
   };
 
   const isFuture = (day: number) => {
@@ -82,11 +98,7 @@ export default function CalendarDatePicker({
   const isToday = (day: number) =>
     today.year === viewYear && today.month === viewMonth && today.day === day;
 
-  const isScheduleDay = (day: number) => {
-    if (!scheduleDays || scheduleDays.length === 0) return false;
-    const dow = new Date(viewYear, viewMonth, day).getDay();
-    return scheduleDays.includes(dow);
-  };
+  const isHighlighted = (day: number) => highlightSet.has(toYMD(viewYear, viewMonth, day));
 
   const handleClick = (day: number) => {
     if (isFuture(day)) return;
@@ -148,7 +160,7 @@ export default function CalendarDatePicker({
           const future = isFuture(day);
           const sel = isSelected(day);
           const tod = isToday(day);
-          const sched = isScheduleDay(day);
+          const highlighted = isHighlighted(day);
 
           let cellClass = 'relative flex items-center justify-center h-8 w-full text-xs font-body rounded-full transition-colors ';
 
@@ -156,7 +168,7 @@ export default function CalendarDatePicker({
             cellClass += 'text-muted-foreground opacity-40 cursor-not-allowed';
           } else if (sel) {
             cellClass += 'bg-primary text-primary-foreground cursor-pointer';
-          } else if (sched) {
+          } else if (highlighted) {
             cellClass += 'bg-amber-50 text-foreground border border-amber-200 cursor-pointer hover:bg-amber-100';
           } else {
             cellClass += 'text-foreground cursor-pointer hover:bg-muted/50';

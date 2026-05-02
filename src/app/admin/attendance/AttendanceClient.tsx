@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import type { Student, Batch, AttendanceStatus } from '@/lib/firebase/types';
+import type { Student, AttendanceStatus } from '@/lib/firebase/types';
 import CalendarDatePicker from '@/components/ui/CalendarDatePicker';
 
 const BATCH_OPTIONS = [
@@ -16,12 +16,16 @@ const STATUS_OPTIONS: { value: AttendanceStatus; label: string; style: string }[
   { value: 'excused', label: 'Excused', style: 'bg-amber-100 text-amber-700 ring-amber-400' },
 ];
 
+interface AttendanceRecord {
+  studentId: string;
+  sessionDate: string;
+  batchType: string;
+}
+
 export default function AttendanceClient({
   students,
-  batches,
 }: {
   students: (Student & { id: string })[];
-  batches: (Batch & { id: string })[];
 }) {
   const today = new Date().toISOString().split('T')[0];
   const [date, setDate] = useState(today);
@@ -32,6 +36,12 @@ export default function AttendanceClient({
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState('');
   const [saveSuccess, setSaveSuccess] = useState(false);
+
+  // Calendar month tracking for highlighted dates
+  const todayDate = new Date();
+  const [calYear, setCalYear] = useState(todayDate.getFullYear());
+  const [calMonth, setCalMonth] = useState(todayDate.getMonth()); // 0-based
+  const [monthRecords, setMonthRecords] = useState<AttendanceRecord[]>([]);
 
   const loadExisting = useCallback(async (d: string) => {
     setIsLoading(true);
@@ -49,7 +59,24 @@ export default function AttendanceClient({
     }
   }, []);
 
+  const loadMonthDates = useCallback(async (year: number, month: number) => {
+    const m = `${year}-${String(month + 1).padStart(2, '0')}`;
+    try {
+      const res = await fetch(`/api/admin/attendance/dates?month=${m}`);
+      if (res.ok) {
+        const data = await res.json();
+        setMonthRecords(data.records ?? []);
+      }
+    } catch {
+      // silently fail — highlighting is non-critical
+    }
+  }, []);
+
   useEffect(() => { loadExisting(today); }, [loadExisting, today]);
+  useEffect(() => { loadMonthDates(calYear, calMonth); }, [loadMonthDates, calYear, calMonth]);
+
+  // Re-fetch month dates when batch filter changes (different students)
+  useEffect(() => { loadMonthDates(calYear, calMonth); }, [batchFilter, groupFilter]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Groups available for the selected batch (only meaningful for 'normal')
   const groupsInBatch = batchFilter === 'normal'
@@ -68,19 +95,23 @@ export default function AttendanceClient({
     return true;
   });
 
-  // Derive session days for calendar highlighting from the matching batch doc
-  const scheduleDays = useMemo(() => {
-    if (batchFilter === 'all') return undefined;
-    const targetLabel = groupFilter === 'all' ? null : groupFilter;
-    return batches.find(
-      (b) => b.batchType === batchFilter && (b.batchLabel ?? null) === targetLabel
-    )?.daysOfWeek;
-  }, [batches, batchFilter, groupFilter]);
+  const filteredStudentIds = useMemo(() => new Set(filtered.map((s) => s.id)), [filtered]);
+
+  // Derive highlighted dates from month records filtered to the current batch selection
+  const highlightedDates = useMemo(() => {
+    const relevant = monthRecords.filter((r) => filteredStudentIds.has(r.studentId));
+    return Array.from(new Set(relevant.map((r) => r.sessionDate)));
+  }, [monthRecords, filteredStudentIds]);
 
   const handleBatchChange = (val: string) => {
     setBatchFilter(val);
     setGroupFilter('all');
     setSaveSuccess(false);
+  };
+
+  const handleMonthChange = (year: number, month: number) => {
+    setCalYear(year);
+    setCalMonth(month);
   };
 
   const setStatus = (studentId: string, status: AttendanceStatus) => {
@@ -124,6 +155,8 @@ export default function AttendanceClient({
         throw new Error(data.error ?? 'Failed to save attendance');
       }
       setSaveSuccess(true);
+      // Refresh month highlights after saving
+      loadMonthDates(calYear, calMonth);
     } catch (err) {
       setSaveError((err as Error).message);
     } finally {
@@ -142,8 +175,9 @@ export default function AttendanceClient({
             <CalendarDatePicker
               value={date}
               onChange={(d) => { setDate(d); loadExisting(d); }}
+              onMonthChange={handleMonthChange}
               maxDate={today}
-              scheduleDays={scheduleDays}
+              highlightedDates={highlightedDates}
             />
           </div>
 
@@ -173,10 +207,10 @@ export default function AttendanceClient({
                 </select>
               </div>
             )}
-            {scheduleDays && scheduleDays.length > 0 && (
+            {highlightedDates.length > 0 && (
               <p className="font-body text-xs text-muted-foreground">
                 <span className="inline-block w-2.5 h-2.5 rounded-sm bg-amber-100 border border-amber-200 mr-1 align-middle" />
-                Highlighted dates = scheduled sessions
+                Highlighted dates have recorded attendance
               </p>
             )}
             <div className="flex gap-2 pt-1">

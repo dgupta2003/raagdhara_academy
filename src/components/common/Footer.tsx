@@ -81,7 +81,7 @@ const Footer = () => {
                 <Icon name="EnvelopeIcon" size={16} className="mt-0.5 flex-shrink-0" />
                 <a
                   href="mailto:raagdharamusic@gmail.com"
-                  className="font-body hover:text-secondary transition-colors"
+                  className="font-body hover:text-secondary transition-contemplative"
                 >
                   raagdharamusic@gmail.com
                 </a>
@@ -109,7 +109,7 @@ const Footer = () => {
                 href="https://wa.me/message/A5LAV3JA5KIZM1"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="w-10 h-10 bg-primary-foreground/10 rounded-full flex items-center justify-center hover:bg-secondary hover:scale-110 transition-all"
+                className="w-10 h-10 bg-primary-foreground/10 rounded-full flex items-center justify-center hover:bg-secondary hover:scale-110 transition-contemplative"
                 aria-label="WhatsApp"
               >
                 <Icon name="ChatBubbleLeftRightIcon" size={20} className="text-primary-foreground" />

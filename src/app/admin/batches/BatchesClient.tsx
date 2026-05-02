@@ -251,7 +251,7 @@ export default function BatchesClient({
 
   if (groups.length === 0) {
     return (
-      <div className="bg-white rounded-lg border border-border shadow-warm p-12 text-center">
+      <div className="bg-card rounded-lg border border-border shadow-warm p-12 text-center">
         <p className="font-body text-muted-foreground">No active students found. Add students and assign them to batches first.</p>
       </div>
     );
@@ -284,7 +284,7 @@ export default function BatchesClient({
       </div>
 
       {filteredGroups.length === 0 && (
-        <div className="bg-white rounded-lg border border-border shadow-warm p-12 text-center">
+        <div className="bg-card rounded-lg border border-border shadow-warm p-12 text-center">
           <p className="font-body text-muted-foreground">No batches in this category.</p>
         </div>
       )}
@@ -299,7 +299,7 @@ export default function BatchesClient({
         const isEditingPersonal = isPersonal && editingPersonalId === personalStudent?.id;
 
         return (
-          <div key={key} className="bg-white rounded-lg border border-border shadow-warm overflow-hidden">
+          <div key={key} className="bg-card rounded-lg border border-border shadow-warm overflow-hidden">
             {/* Card header */}
             <div className="px-6 py-4 border-b border-border flex items-center justify-between">
               <div>
@@ -418,7 +418,7 @@ export default function BatchesClient({
                   <button
                     onClick={() => saveSchedule(group)}
                     disabled={scheduleLoading}
-                    className="px-4 py-2 bg-primary text-primary-foreground text-sm font-body font-medium rounded-md hover:bg-primary/90 disabled:opacity-60 transition-contemplative"
+                    className="px-4 py-2 bg-primary text-primary-foreground text-sm font-body font-medium rounded-full hover:bg-primary/90 disabled:opacity-60 transition-contemplative"
                   >
                     {scheduleLoading ? 'Saving…' : 'Save Schedule'}
                   </button>
@@ -432,7 +432,7 @@ export default function BatchesClient({
                 <div className="space-y-3 max-w-lg">
                   <label className="block text-xs font-body font-medium text-muted-foreground uppercase tracking-wide">Sessions this week</label>
                   {personalSessions.map((session, idx) => (
-                    <div key={idx} className="flex items-center gap-3 bg-white rounded-md border border-border p-3">
+                    <div key={idx} className="flex items-center gap-3 bg-card rounded-md border border-border p-3">
                       <div className="flex-1">
                         <label className="block text-xs font-body text-muted-foreground mb-1">Day</label>
                         <select
@@ -488,7 +488,7 @@ export default function BatchesClient({
                   <button
                     onClick={() => savePersonalSchedule(personalStudent.id)}
                     disabled={personalLoading}
-                    className="px-4 py-2 bg-primary text-primary-foreground text-sm font-body font-medium rounded-md hover:bg-primary/90 disabled:opacity-60 transition-contemplative"
+                    className="px-4 py-2 bg-primary text-primary-foreground text-sm font-body font-medium rounded-full hover:bg-primary/90 disabled:opacity-60 transition-contemplative"
                   >
                     {personalLoading ? 'Saving…' : 'Save Schedule'}
                   </button>
@@ -550,7 +550,7 @@ export default function BatchesClient({
       {/* Move-batch modal */}
       {movingState && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg border border-border shadow-warm p-6 w-full max-w-sm">
+          <div className="bg-card rounded-lg border border-border shadow-warm p-6 w-full max-w-sm">
             <h3 className="font-headline text-lg font-semibold text-foreground mb-1">Move student</h3>
             <p className="font-body text-sm text-muted-foreground mb-4">
               Moving <strong>{movingState.studentName}</strong> to a different batch.

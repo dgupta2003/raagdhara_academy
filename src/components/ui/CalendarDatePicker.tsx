@@ -112,7 +112,7 @@ export default function CalendarDatePicker({
   ];
 
   return (
-    <div className="w-72 bg-white rounded-lg border border-border shadow-warm p-3 select-none">
+    <div className="w-72 bg-card rounded-lg border border-border shadow-warm p-3 select-none">
       {/* Month navigation */}
       <div className="flex items-center justify-between mb-2">
         <button

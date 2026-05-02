@@ -114,7 +114,7 @@ export default async function StudentOverviewPage() {
           <p className="font-body text-sm text-muted-foreground mt-1">{student.email}</p>
         </div>
 
-        <div className="bg-white rounded-lg border border-border shadow-warm p-6">
+        <div className="bg-card rounded-lg border border-border shadow-warm p-6">
           <div className="p-4 bg-secondary/10 border border-secondary/30 rounded-md mb-6">
             <p className="font-body text-sm font-medium text-foreground mb-1">Your account is under review</p>
             <p className="font-body text-sm text-muted-foreground">
@@ -200,8 +200,8 @@ export default async function StudentOverviewPage() {
           href="/student/payments"
           className={`block rounded-lg border p-5 hover:shadow-warm transition-shadow ${
             latestPayment
-              ? paymentStatusColor[latestPayment.status] ?? 'border-border bg-white'
-              : 'border-border bg-white'
+              ? paymentStatusColor[latestPayment.status] ?? 'border-border bg-card'
+              : 'border-border bg-card'
           }`}
         >
           <div className="flex items-start justify-between mb-3">
@@ -226,16 +226,16 @@ export default async function StudentOverviewPage() {
       </div>
 
       {/* Quick links */}
-      <div className="bg-white rounded-lg border border-border p-6 shadow-warm">
+      <div className="bg-card rounded-lg border border-border p-6 shadow-warm">
         <h2 className="font-headline text-lg font-semibold text-foreground mb-4">Quick links</h2>
         <div className="space-y-2">
-          <Link href="/student/attendance" className="flex items-center gap-3 p-3 rounded-md hover:bg-muted/50 transition-colors group">
+          <Link href="/student/attendance" className="flex items-center gap-3 p-3 rounded-md hover:bg-muted/50 transition-contemplative group">
             <span className="w-2 h-2 rounded-full bg-primary flex-shrink-0" />
-            <span className="font-body text-sm text-foreground group-hover:text-primary transition-colors">View full attendance history</span>
+            <span className="font-body text-sm text-foreground group-hover:text-primary transition-contemplative">View full attendance history</span>
           </Link>
-          <Link href="/student/payments" className="flex items-center gap-3 p-3 rounded-md hover:bg-muted/50 transition-colors group">
+          <Link href="/student/payments" className="flex items-center gap-3 p-3 rounded-md hover:bg-muted/50 transition-contemplative group">
             <span className="w-2 h-2 rounded-full bg-primary flex-shrink-0" />
-            <span className="font-body text-sm text-foreground group-hover:text-primary transition-colors">View payment invoices</span>
+            <span className="font-body text-sm text-foreground group-hover:text-primary transition-contemplative">View payment invoices</span>
           </Link>
         </div>
       </div>

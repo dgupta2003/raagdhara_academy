@@ -127,7 +127,7 @@ export default function StudentEditClient({
   const labelClass = 'block text-sm font-medium text-foreground mb-1 font-body';
 
   return (
-    <div className="bg-white rounded-lg border border-border shadow-warm p-6 space-y-5">
+    <div className="bg-card rounded-lg border border-border shadow-warm p-6 space-y-5">
       {/* Read-only info */}
       <div className="grid grid-cols-2 gap-4 pb-4 border-b border-border">
         {[
@@ -205,7 +205,7 @@ export default function StudentEditClient({
       <button
         onClick={handleSave}
         disabled={isSaving}
-        className="w-full py-2.5 px-4 bg-primary text-primary-foreground font-body text-sm font-medium rounded-md hover:bg-primary/90 disabled:opacity-60 transition-contemplative"
+        className="w-full py-2.5 px-4 bg-primary text-primary-foreground font-body text-sm font-medium rounded-full hover:bg-primary/90 disabled:opacity-60 transition-contemplative"
       >
         {isSaving ? 'Saving…' : 'Save changes'}
       </button>

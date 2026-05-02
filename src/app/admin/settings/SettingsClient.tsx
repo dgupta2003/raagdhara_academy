@@ -95,7 +95,7 @@ export default function SettingsClient({ settings }: { settings: Settings }) {
   return (
     <div className="space-y-6">
       {/* Payment timing */}
-      <div className="bg-white rounded-lg border border-border shadow-warm p-6">
+      <div className="bg-card rounded-lg border border-border shadow-warm p-6">
         <h2 className="font-headline text-base font-semibold text-foreground mb-4">Payment timing</h2>
         <div className="grid grid-cols-2 gap-4">
           <div>
@@ -110,7 +110,7 @@ export default function SettingsClient({ settings }: { settings: Settings }) {
       </div>
 
       {/* India fees */}
-      <div className="bg-white rounded-lg border border-border shadow-warm p-6">
+      <div className="bg-card rounded-lg border border-border shadow-warm p-6">
         <h2 className="font-headline text-base font-semibold text-foreground mb-1">India fees (₹ paise)</h2>
         <p className="font-body text-xs text-muted-foreground mb-4">Enter in paise. e.g. 50000 = ₹500/month</p>
         <FeeRow
@@ -120,7 +120,7 @@ export default function SettingsClient({ settings }: { settings: Settings }) {
       </div>
 
       {/* NRI USD fees */}
-      <div className="bg-white rounded-lg border border-border shadow-warm p-6">
+      <div className="bg-card rounded-lg border border-border shadow-warm p-6">
         <h2 className="font-headline text-base font-semibold text-foreground mb-1">NRI fees — USD</h2>
         <p className="font-body text-xs text-muted-foreground mb-4">Enter in USD dollars. e.g. 30 = $30/month</p>
         <FeeRow
@@ -130,7 +130,7 @@ export default function SettingsClient({ settings }: { settings: Settings }) {
       </div>
 
       {/* NRI INR equivalent fees */}
-      <div className="bg-white rounded-lg border border-border shadow-warm p-6">
+      <div className="bg-card rounded-lg border border-border shadow-warm p-6">
         <h2 className="font-headline text-base font-semibold text-foreground mb-1">NRI fees — INR equivalent (paise)</h2>
         <p className="font-body text-xs text-muted-foreground mb-4">For NRI students who prefer to pay in INR.</p>
         <FeeRow
@@ -145,7 +145,7 @@ export default function SettingsClient({ settings }: { settings: Settings }) {
       <button
         onClick={handleSave}
         disabled={isSaving}
-        className="w-full py-2.5 px-4 bg-primary text-primary-foreground font-body text-sm font-medium rounded-md hover:bg-primary/90 disabled:opacity-60 transition-contemplative"
+        className="w-full py-2.5 px-4 bg-primary text-primary-foreground font-body text-sm font-medium rounded-full hover:bg-primary/90 disabled:opacity-60 transition-contemplative"
       >
         {isSaving ? 'Saving…' : 'Save settings'}
       </button>

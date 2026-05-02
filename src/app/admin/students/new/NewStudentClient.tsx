@@ -74,7 +74,7 @@ export default function NewStudentClient() {
   const labelClass = 'block text-sm font-medium text-foreground mb-1 font-body';
 
   return (
-    <div className="bg-white rounded-lg border border-border shadow-warm p-6 space-y-4">
+    <div className="bg-card rounded-lg border border-border shadow-warm p-6 space-y-4">
       <div className="grid grid-cols-2 gap-4">
         <div className="col-span-2">
           <label className={labelClass}>Full name *</label>
@@ -125,7 +125,7 @@ export default function NewStudentClient() {
 
       {saveError && <p className="text-sm text-error font-body">{saveError}</p>}
 
-      <button onClick={handleSave} disabled={isSaving} className="w-full py-2.5 px-4 bg-primary text-primary-foreground font-body text-sm font-medium rounded-md hover:bg-primary/90 disabled:opacity-60 transition-contemplative">
+      <button onClick={handleSave} disabled={isSaving} className="w-full py-2.5 px-4 bg-primary text-primary-foreground font-body text-sm font-medium rounded-full hover:bg-primary/90 disabled:opacity-60 transition-contemplative">
         {isSaving ? 'Creating…' : 'Create student'}
       </button>
     </div>

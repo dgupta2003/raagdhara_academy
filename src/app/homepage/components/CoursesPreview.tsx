@@ -135,7 +135,7 @@ const CoursesPreview = () => {
         <div className="text-center">
           <Link
             href="/courses-and-offerings"
-            className="inline-flex items-center px-8 py-4 bg-secondary text-secondary-foreground font-cta text-lg rounded-md shadow-warm hover:shadow-warm-lg hover:scale-105 transition-contemplative"
+            className="inline-flex items-center px-8 py-4 bg-secondary text-secondary-foreground font-cta text-lg rounded-full shadow-warm hover:shadow-warm-lg hover:scale-105 transition-contemplative"
           >
             View All Courses
             <Icon name="AcademicCapIcon" size={20} className="ml-2" />

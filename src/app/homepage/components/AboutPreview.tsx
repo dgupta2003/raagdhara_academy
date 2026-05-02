@@ -80,7 +80,7 @@ const AboutPreview = () => {
             <div className="pt-6">
               <Link
                 href="/courses-and-offerings"
-                className="inline-flex items-center px-6 py-3 bg-primary text-primary-foreground font-cta text-base rounded-md shadow-warm hover:shadow-warm-lg hover:scale-105 transition-contemplative">
+                className="inline-flex items-center px-6 py-3 bg-primary text-primary-foreground font-cta text-base rounded-full shadow-warm hover:shadow-warm-lg hover:scale-105 transition-contemplative">
 
                 Learn More About Teaching
                 <Icon name="ArrowRightIcon" size={18} className="ml-2" />

@@ -167,7 +167,7 @@ export default function AttendanceClient({
   return (
     <div className="max-w-2xl">
       {/* Controls */}
-      <div className="bg-white rounded-lg border border-border shadow-warm p-5 mb-6">
+      <div className="bg-card rounded-lg border border-border shadow-warm p-5 mb-6">
         <div className="flex flex-wrap gap-4 items-start">
           {/* Calendar date picker */}
           <div className="flex-none">
@@ -230,7 +230,7 @@ export default function AttendanceClient({
       ) : filtered.length === 0 ? (
         <p className="font-body text-sm text-muted-foreground">No active students in this batch.</p>
       ) : (
-        <div className="bg-white rounded-lg border border-border shadow-warm overflow-hidden mb-4">
+        <div className="bg-card rounded-lg border border-border shadow-warm overflow-hidden mb-4">
           <div className="divide-y divide-border">
             {filtered.map((student) => (
               <div key={student.id} className="flex items-center justify-between px-5 py-3">
@@ -267,7 +267,7 @@ export default function AttendanceClient({
       <button
         onClick={handleSave}
         disabled={isSaving || filtered.length === 0}
-        className="w-full py-2.5 px-4 bg-primary text-primary-foreground font-body text-sm font-medium rounded-md hover:bg-primary/90 disabled:opacity-60 transition-contemplative"
+        className="w-full py-2.5 px-4 bg-primary text-primary-foreground font-body text-sm font-medium rounded-full hover:bg-primary/90 disabled:opacity-60 transition-contemplative"
       >
         {isSaving ? 'Saving…' : `Save attendance (${markedCount}/${filtered.length} marked)`}
       </button>

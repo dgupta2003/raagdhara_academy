@@ -121,7 +121,7 @@ function PayNowButton({ payment }: { payment: PaymentRecord }) {
       <button
         onClick={handlePay}
         disabled={loading}
-        className="flex-shrink-0 px-4 py-2 text-sm font-body font-medium rounded-md bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-60 transition-contemplative"
+        className="flex-shrink-0 px-4 py-2 text-sm font-body font-medium rounded-full bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-60 transition-contemplative"
       >
         {loading ? 'Opening…' : 'Pay now'}
       </button>
@@ -141,7 +141,7 @@ export default function PaymentsClient({
 }) {
   if (payments.length === 0) {
     return (
-      <div className="bg-white rounded-lg border border-border shadow-warm p-12 text-center">
+      <div className="bg-card rounded-lg border border-border shadow-warm p-12 text-center">
         <svg className="w-12 h-12 text-muted mx-auto mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
         </svg>
@@ -171,7 +171,7 @@ export default function PaymentsClient({
             : null;
 
           return (
-            <div key={payment.id} className="bg-white rounded-lg border border-border shadow-warm p-5">
+            <div key={payment.id} className="bg-card rounded-lg border border-border shadow-warm p-5">
               <div className="flex items-start justify-between gap-4">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-3 mb-2">

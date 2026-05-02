@@ -40,7 +40,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
         </Link>
 
         {/* Card */}
-        <div className="bg-white rounded-lg shadow-warm p-8">
+        <div className="bg-card rounded-lg border border-border shadow-warm p-8">
           {children}
         </div>
 

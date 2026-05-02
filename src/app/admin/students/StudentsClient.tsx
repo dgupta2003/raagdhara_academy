@@ -167,11 +167,11 @@ export default function StudentsClient({ students, courseLabels }: Props) {
 
       {/* Table */}
       {filtered.length === 0 ? (
-        <div className="bg-white rounded-lg border border-border p-12 text-center shadow-warm">
+        <div className="bg-card rounded-lg border border-border p-12 text-center shadow-warm">
           <p className="font-body text-muted-foreground">No students match the selected filters.</p>
         </div>
       ) : (
-        <div className="bg-white rounded-lg border border-border shadow-warm overflow-hidden">
+        <div className="bg-card rounded-lg border border-border shadow-warm overflow-hidden">
           <table className="w-full">
             <thead>
               <tr className="border-b border-border bg-muted/30">

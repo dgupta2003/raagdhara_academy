@@ -310,7 +310,7 @@ export default function CoursesInteractive() {
                 {/* CTA Button */}
                 <button
                 onClick={handleEnroll}
-                className="w-full px-6 py-3 bg-secondary text-secondary-foreground font-cta rounded-md hover:scale-105 shadow-warm hover:shadow-warm-lg transition-contemplative flex items-center justify-center gap-2">
+                className="w-full px-6 py-3 bg-secondary text-secondary-foreground font-cta rounded-full hover:scale-105 shadow-warm hover:shadow-warm-lg transition-contemplative flex items-center justify-center gap-2">
 
                   <Icon name="AcademicCapIcon" size={20} />
                   Book Free Consultation

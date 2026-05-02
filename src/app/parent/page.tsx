@@ -171,7 +171,7 @@ export default async function ParentOverviewPage({
         </Link>
       </div>
 
-      <div className="bg-white rounded-lg border border-border p-6 shadow-warm">
+      <div className="bg-card rounded-lg border border-border p-6 shadow-warm">
         <h2 className="font-headline text-lg font-semibold text-foreground mb-4">Quick links</h2>
         <div className="space-y-2">
           <Link href={`/parent/attendance${childParam}`} className="flex items-center gap-3 p-3 rounded-md hover:bg-muted/50 transition-colors group">

@@ -133,7 +133,7 @@ export default async function AdminOverviewPage() {
 
       {/* Quick actions */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
-        <div className="bg-white rounded-lg border border-border p-6 shadow-warm">
+        <div className="bg-card rounded-lg border border-border p-6 shadow-warm">
           <h2 className="font-headline text-lg font-semibold text-foreground mb-4">Quick actions</h2>
           <div className="space-y-2">
             <Link href="/admin/students?status=pending" className="flex items-center gap-3 p-3 rounded-md hover:bg-muted/50 transition-colors group">
@@ -154,7 +154,7 @@ export default async function AdminOverviewPage() {
           </div>
         </div>
 
-        <div className="bg-white rounded-lg border border-border p-6 shadow-warm">
+        <div className="bg-card rounded-lg border border-border p-6 shadow-warm">
           <h2 className="font-headline text-lg font-semibold text-foreground mb-4">Payments</h2>
           <div className="space-y-2">
             <Link href="/admin/payments" className="flex items-center gap-3 p-3 rounded-md hover:bg-muted/50 transition-colors group">
@@ -177,7 +177,7 @@ export default async function AdminOverviewPage() {
       </div>
 
       {/* Recent Logins */}
-      <div className="bg-white rounded-lg border border-border shadow-warm overflow-hidden">
+      <div className="bg-card rounded-lg border border-border shadow-warm overflow-hidden">
         <div className="px-6 py-4 border-b border-border">
           <h2 className="font-headline text-lg font-semibold text-foreground">Recent Logins</h2>
           <p className="font-body text-xs text-muted-foreground mt-0.5">Last 20 portal sign-ins across all users</p>

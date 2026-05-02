@@ -67,14 +67,14 @@ export default function FreeConsultationBookingPage() {
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
               <a
                 href="#booking-form"
-                className="inline-flex items-center px-8 py-4 bg-secondary text-secondary-foreground font-cta text-base rounded-md shadow-warm hover:shadow-warm-lg hover:scale-105 transition-contemplative"
+                className="inline-flex items-center px-8 py-4 bg-secondary text-secondary-foreground font-cta text-base rounded-full shadow-warm hover:shadow-warm-lg hover:scale-105 transition-contemplative"
               >
                 Book Your Free Session
                 <Icon name="ArrowDownIcon" size={20} className="ml-2" />
               </a>
               <Link
                 href="/courses-and-offerings"
-                className="inline-flex items-center px-8 py-4 border-2 border-primary text-primary font-cta text-base rounded-md hover:bg-primary/5 transition-contemplative"
+                className="inline-flex items-center px-8 py-4 border-2 border-primary text-primary font-cta text-base rounded-full hover:bg-primary/5 transition-contemplative"
               >
                 Explore Courses
                 <Icon name="ArrowRightIcon" size={20} className="ml-2" />
@@ -177,7 +177,7 @@ export default function FreeConsultationBookingPage() {
             </p>
             <a
               href="#booking-form"
-              className="inline-flex items-center px-8 py-4 bg-secondary text-secondary-foreground font-cta text-base rounded-md shadow-warm hover:shadow-warm-lg hover:scale-105 transition-contemplative"
+              className="inline-flex items-center px-8 py-4 bg-secondary text-secondary-foreground font-cta text-base rounded-full shadow-warm hover:shadow-warm-lg hover:scale-105 transition-contemplative"
             >
               Schedule Your Free Session
               <Icon name="CalendarDaysIcon" size={20} className="ml-2" />

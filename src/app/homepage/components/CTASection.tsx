@@ -59,14 +59,14 @@ const CTASection = ({ onBookConsultation }: CTASectionProps) => {
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-8">
             <button
               onClick={onBookConsultation}
-              className="inline-flex items-center px-8 py-4 bg-secondary text-secondary-foreground font-cta text-lg rounded-md shadow-warm-lg hover:scale-105 transition-contemplative w-full sm:w-auto"
+              className="inline-flex items-center px-8 py-4 bg-secondary text-secondary-foreground font-cta text-lg rounded-full shadow-warm-lg hover:scale-105 transition-contemplative w-full sm:w-auto"
             >
               Book Free Consultation
               <Icon name="CalendarIcon" size={20} className="ml-2" />
             </button>
             <Link
               href="/contact-and-connect"
-              className="inline-flex items-center px-8 py-4 bg-primary-foreground text-primary border-2 border-primary-foreground font-cta text-lg rounded-md hover:bg-transparent hover:text-primary-foreground transition-contemplative w-full sm:w-auto"
+              className="inline-flex items-center px-8 py-4 bg-primary-foreground text-primary border-2 border-primary-foreground font-cta text-lg rounded-full hover:bg-transparent hover:text-primary-foreground transition-contemplative w-full sm:w-auto"
             >
               Contact Us
               <Icon name="ChatBubbleLeftRightIcon" size={20} className="ml-2" />

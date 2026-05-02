@@ -108,7 +108,7 @@ const Header = ({ className = '' }: HeaderProps) => {
                 className="font-body text-base text-foreground hover:text-primary transition-contemplative relative group"
               >
                 {item.label}
-                <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-primary group-hover:w-full transition-all duration-300"></span>
+                <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-primary group-hover:w-full transition-contemplative"></span>
               </Link>
             ))}
           </nav>
@@ -117,13 +117,13 @@ const Header = ({ className = '' }: HeaderProps) => {
           <div className="hidden lg:flex items-center gap-3">
             <Link
               href="/auth/login"
-              className="inline-flex items-center px-4 py-2 border border-border text-foreground/70 font-cta text-sm rounded-md hover:text-primary hover:border-primary transition-all duration-300"
+              className="inline-flex items-center px-4 py-2 border border-border text-foreground/70 font-cta text-sm rounded-full hover:text-primary hover:border-primary transition-contemplative"
             >
               Student Login
             </Link>
             <Link
               href="/free-consultation-booking"
-              className={`inline-flex items-center px-6 py-3 bg-secondary text-secondary-foreground font-cta text-sm rounded-md shadow-warm hover:shadow-warm-lg hover:scale-105 transition-all duration-300 ${
+              className={`inline-flex items-center px-6 py-3 bg-secondary text-secondary-foreground font-cta text-sm rounded-full shadow-warm hover:shadow-warm-lg hover:scale-105 transition-contemplative ${
                 showConsultationButton ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-2 pointer-events-none'
               }`}
             >

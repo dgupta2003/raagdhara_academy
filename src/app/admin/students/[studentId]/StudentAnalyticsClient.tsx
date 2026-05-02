@@ -115,7 +115,7 @@ export default function StudentAnalyticsClient({
       </div>
 
       {/* Profile card */}
-      <div className="bg-white rounded-lg border border-border shadow-warm p-6 mb-6">
+      <div className="bg-card rounded-lg border border-border shadow-warm p-6 mb-6">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-4">
           <div>
             <p className="text-xs font-body font-medium text-muted-foreground uppercase tracking-wide mb-1">Phone</p>
@@ -154,7 +154,7 @@ export default function StudentAnalyticsClient({
           { label: 'Absent / Excused', value: attendanceStats.absent + attendanceStats.excused, color: 'text-red-700' },
           { label: 'Attendance Rate', value: `${attendanceStats.rate}%`, color: attendanceStats.rate >= 75 ? 'text-green-700' : 'text-red-700' },
         ].map((stat) => (
-          <div key={stat.label} className="bg-white rounded-lg border border-border shadow-warm p-5 text-center">
+          <div key={stat.label} className="bg-card rounded-lg border border-border shadow-warm p-5 text-center">
             <p className={`font-headline text-3xl font-bold ${stat.color}`}>{stat.value}</p>
             <p className="font-body text-xs text-muted-foreground mt-1">{stat.label}</p>
           </div>
@@ -164,7 +164,7 @@ export default function StudentAnalyticsClient({
       {/* Attendance history + payments side by side on wide screens */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Recent attendance */}
-        <div className="bg-white rounded-lg border border-border shadow-warm overflow-hidden">
+        <div className="bg-card rounded-lg border border-border shadow-warm overflow-hidden">
           <div className="px-5 py-4 border-b border-border">
             <h2 className="font-headline text-base font-semibold text-foreground">Recent Attendance</h2>
             <p className="font-body text-xs text-muted-foreground mt-0.5">Last {recentAttendance.length} sessions</p>
@@ -188,7 +188,7 @@ export default function StudentAnalyticsClient({
         </div>
 
         {/* Recent payments */}
-        <div className="bg-white rounded-lg border border-border shadow-warm overflow-hidden">
+        <div className="bg-card rounded-lg border border-border shadow-warm overflow-hidden">
           <div className="px-5 py-4 border-b border-border">
             <h2 className="font-headline text-base font-semibold text-foreground">Recent Payments</h2>
             <p className="font-body text-xs text-muted-foreground mt-0.5">Last {recentPayments.length} invoices</p>

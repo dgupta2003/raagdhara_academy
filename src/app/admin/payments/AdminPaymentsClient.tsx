@@ -362,7 +362,7 @@ export default function AdminPaymentsClient({
           <button
             onClick={handleBulkGenerate}
             disabled={generating}
-            className="px-4 py-2 bg-primary text-primary-foreground text-sm font-body font-medium rounded-md hover:bg-primary/90 disabled:opacity-60 transition-contemplative"
+            className="px-4 py-2 bg-primary text-primary-foreground text-sm font-body font-medium rounded-full hover:bg-primary/90 disabled:opacity-60 transition-contemplative"
           >
             {generating ? 'Generating…' : "Generate this month's invoices"}
           </button>
@@ -386,7 +386,7 @@ export default function AdminPaymentsClient({
               { label: 'Pending', value: formatInr(pendingTotal), sub: 'awaiting payment', color: 'text-amber-600' },
               { label: 'Overdue', value: formatInr(overdueTotal), sub: 'past due date', color: 'text-red-600' },
             ].map((card) => (
-              <div key={card.label} className="bg-white rounded-lg border border-border shadow-warm p-5">
+              <div key={card.label} className="bg-card rounded-lg border border-border shadow-warm p-5">
                 <p className="font-body text-xs text-muted-foreground uppercase tracking-wide mb-1">{card.label}</p>
                 <p className={`font-headline text-2xl font-semibold ${card.color}`}>{card.value}</p>
                 <p className="font-body text-xs text-muted-foreground mt-0.5">{card.sub}</p>
@@ -395,7 +395,7 @@ export default function AdminPaymentsClient({
           </div>
 
           {/* Monthly breakdown */}
-          <div className="bg-white rounded-lg border border-border shadow-warm overflow-hidden">
+          <div className="bg-card rounded-lg border border-border shadow-warm overflow-hidden">
             <div className="px-6 py-4 border-b border-border">
               <h2 className="font-headline text-base font-semibold text-foreground">Monthly Breakdown — Last 12 Months</h2>
             </div>
@@ -438,7 +438,7 @@ export default function AdminPaymentsClient({
 
           {/* Batch breakdown */}
           {batchBreakdown.length > 0 && (
-            <div className="bg-white rounded-lg border border-border shadow-warm overflow-hidden">
+            <div className="bg-card rounded-lg border border-border shadow-warm overflow-hidden">
               <div className="px-6 py-4 border-b border-border">
                 <h2 className="font-headline text-base font-semibold text-foreground">Revenue by Batch</h2>
               </div>
@@ -484,7 +484,7 @@ export default function AdminPaymentsClient({
 
           {/* Per-student summary */}
           {studentSummary.length > 0 && (
-            <div className="bg-white rounded-lg border border-border shadow-warm overflow-hidden">
+            <div className="bg-card rounded-lg border border-border shadow-warm overflow-hidden">
               <div className="px-6 py-4 border-b border-border">
                 <h2 className="font-headline text-base font-semibold text-foreground">Per-Student Summary ({thisYear})</h2>
               </div>
@@ -545,11 +545,11 @@ export default function AdminPaymentsClient({
           </div>
 
           {filtered.length === 0 ? (
-            <div className="bg-white rounded-lg border border-border shadow-warm p-12 text-center">
+            <div className="bg-card rounded-lg border border-border shadow-warm p-12 text-center">
               <p className="font-body text-sm text-muted-foreground">No invoices in this category.</p>
             </div>
           ) : (
-            <div className="bg-white rounded-lg border border-border shadow-warm overflow-hidden">
+            <div className="bg-card rounded-lg border border-border shadow-warm overflow-hidden">
               <table className="w-full text-sm">
                 <thead className="bg-muted/30 border-b border-border">
                   <tr>

@@ -114,7 +114,7 @@ export default async function StudentOverviewPage() {
           <p className="font-body text-sm text-muted-foreground mt-1">{student.email}</p>
         </div>
 
-        <div className="bg-white rounded-lg border border-border shadow-warm p-6">
+        <div className="bg-card rounded-lg border border-border shadow-warm p-6">
           <div className="p-4 bg-secondary/10 border border-secondary/30 rounded-md mb-6">
             <p className="font-body text-sm font-medium text-foreground mb-1">Your account is under review</p>
             <p className="font-body text-sm text-muted-foreground">
@@ -226,7 +226,7 @@ export default async function StudentOverviewPage() {
       </div>
 
       {/* Quick links */}
-      <div className="bg-white rounded-lg border border-border p-6 shadow-warm">
+      <div className="bg-card rounded-lg border border-border p-6 shadow-warm">
         <h2 className="font-headline text-lg font-semibold text-foreground mb-4">Quick links</h2>
         <div className="space-y-2">
           <Link href="/student/attendance" className="flex items-center gap-3 p-3 rounded-md hover:bg-muted/50 transition-colors group">

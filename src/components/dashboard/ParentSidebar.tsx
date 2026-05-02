@@ -109,7 +109,7 @@ export default function ParentSidebar() {
           <Link
             key={item.href}
             href={item.href}
-            className={`flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-body transition-colors ${
+            className={`flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-body transition-contemplative ${
               isActive(item.href, item.exactMatch)
                 ? 'bg-white/15 text-white font-medium'
                 : 'text-white/70 hover:bg-white/10 hover:text-white'
@@ -128,7 +128,7 @@ export default function ParentSidebar() {
         </div>
         <button
           onClick={handleSignOut}
-          className="flex items-center gap-3 w-full px-3 py-2.5 rounded-md text-sm text-white/70 hover:bg-white/10 hover:text-white transition-colors font-body"
+          className="flex items-center gap-3 w-full px-3 py-2.5 rounded-md text-sm text-white/70 hover:bg-white/10 hover:text-white transition-contemplative font-body"
         >
           <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />

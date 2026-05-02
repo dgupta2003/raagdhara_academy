@@ -79,6 +79,19 @@ export default function AdminPaymentsClient({
   const [sendingNotif, setSendingNotif] = useState<string | null>(null)
   const [notifResult, setNotifResult] = useState<Record<string, string>>({})
   const [exporting, setExporting] = useState(false)
+  const [expandedMonths, setExpandedMonths] = useState<Set<string>>(() => {
+    if (payments.length === 0) return new Set()
+    return new Set([(payments[0].dueDate as string).slice(0, 7)])
+  })
+
+  function toggleMonth(key: string) {
+    setExpandedMonths((prev) => {
+      const next = new Set(prev)
+      if (next.has(key)) next.delete(key)
+      else next.add(key)
+      return next
+    })
+  }
 
   // Student lookup map for batch info
   const studentMap = useMemo(() => {
@@ -246,6 +259,16 @@ export default function AdminPaymentsClient({
     if (invoiceFilter === 'pending') return p.status === 'pending' || p.status === 'sent'
     return p.status === invoiceFilter
   })
+
+  const groupedMonths = useMemo(() => {
+    const groups: Record<string, PaymentRecord[]> = {}
+    filtered.forEach((p) => {
+      const key = monthKey(p.dueDate as string)
+      if (!groups[key]) groups[key] = []
+      groups[key].push(p)
+    })
+    return Object.entries(groups).sort(([a], [b]) => b.localeCompare(a))
+  }, [filtered])
 
   const handleBulkGenerate = async () => {
     setGenerating(true)
@@ -544,84 +567,113 @@ export default function AdminPaymentsClient({
             ))}
           </div>
 
-          {filtered.length === 0 ? (
+          {groupedMonths.length === 0 ? (
             <div className="bg-card rounded-lg border border-border shadow-warm p-12 text-center">
               <p className="font-body text-sm text-muted-foreground">No invoices in this category.</p>
             </div>
           ) : (
-            <div className="bg-card rounded-lg border border-border shadow-warm overflow-hidden">
-              <table className="w-full text-sm">
-                <thead className="bg-muted/30 border-b border-border">
-                  <tr>
-                    {['Student', 'Amount', 'Due date', 'Status', 'Actions'].map((h) => (
-                      <th key={h} className="px-4 py-3 text-left text-xs font-body font-medium text-muted-foreground uppercase tracking-wide">
-                        {h}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border">
-                  {filtered.map((p) => {
-                    const config = STATUS_CONFIG[p.status]
-                    const canAct = p.status !== 'paid'
-                    const isOverdue = p.status === 'overdue'
-                    return (
-                      <tr key={p.id} className="hover:bg-muted/10 transition-colors">
-                        <td className="px-4 py-3">
-                          <p className="font-body font-medium text-foreground">{p.studentName}</p>
-                          <p className="font-body text-xs text-muted-foreground">{p.studentEmail}</p>
-                        </td>
-                        <td className="px-4 py-3 font-body text-foreground">
-                          {formatAmount(p.amount, p.currency)}
-                        </td>
-                        <td className="px-4 py-3 font-body text-foreground">
-                          {formatDate(p.dueDate as string)}
-                        </td>
-                        <td className="px-4 py-3">
-                          <div>
-                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-body font-medium border ${config.classes}`}>
-                              {config.label}
-                            </span>
-                            {p.markedPaidManually && (
-                              <p className="font-body text-xs text-muted-foreground mt-0.5">Manual</p>
-                            )}
-                            {notifResult[p.id] && (
-                              <p className="font-body text-xs text-green-600 mt-0.5">{notifResult[p.id]}</p>
-                            )}
-                          </div>
-                        </td>
-                        <td className="px-4 py-3">
-                          {canAct && (
-                            <div className="flex flex-wrap gap-2">
-                              <button
-                                onClick={() => handleMarkPaid(p.id, p.studentName)}
-                                disabled={markingPaid === p.id}
-                                className="text-xs font-body text-green-700 hover:text-green-800 border border-green-200 bg-green-50 hover:bg-green-100 rounded px-2 py-1 transition-colors disabled:opacity-50"
-                              >
-                                {markingPaid === p.id ? '…' : 'Mark paid'}
-                              </button>
-                              <button
-                                onClick={() => handleSendNotif(p.id, isOverdue ? 'overdue' : 'reminder')}
-                                disabled={sendingNotif === p.id}
-                                className="text-xs font-body text-amber-700 hover:text-amber-800 border border-amber-200 bg-amber-50 hover:bg-amber-100 rounded px-2 py-1 transition-colors disabled:opacity-50"
-                              >
-                                {sendingNotif === p.id ? '…' : isOverdue ? 'Send overdue notice' : 'Send reminder'}
-                              </button>
-                              <button
-                                onClick={() => handleDelete(p.id)}
-                                disabled={deleting === p.id}
-                                className="text-xs font-body text-muted-foreground hover:text-red-600 transition-colors disabled:opacity-50"
-                              >
-                                {deleting === p.id ? '…' : 'Delete'}
-                              </button>
-                            </div>
-                          )}
-                        </td>
-                      </tr>
-                    )
-                  })}
-                </tbody>
-              </table>
+            <div className="space-y-3">
+              {groupedMonths.map(([key, rows]) => {
+                const isOpen = expandedMonths.has(key)
+                return (
+                  <div key={key} className="bg-card rounded-lg border border-border shadow-warm overflow-hidden">
+                    <button
+                      onClick={() => toggleMonth(key)}
+                      className="w-full flex items-center justify-between px-4 py-3 hover:bg-muted/10 transition-contemplative"
+                    >
+                      <span className="font-headline text-base font-medium text-foreground">{monthLabel(key)}</span>
+                      <div className="flex items-center gap-3">
+                        <span className="font-body text-xs text-muted-foreground">
+                          {rows.length} invoice{rows.length !== 1 ? 's' : ''}
+                        </span>
+                        <svg
+                          width="16" height="16" viewBox="0 0 16 16" fill="none"
+                          style={{ transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }}
+                          className="text-muted-foreground"
+                        >
+                          <path d="M4 6l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                        </svg>
+                      </div>
+                    </button>
+                    {isOpen && (
+                      <div className="border-t border-border">
+                        <table className="w-full text-sm">
+                          <thead className="bg-muted/30 border-b border-border">
+                            <tr>
+                              {['Student', 'Amount', 'Due date', 'Status', 'Actions'].map((h) => (
+                                <th key={h} className="px-4 py-3 text-left text-xs font-body font-medium text-muted-foreground uppercase tracking-wide">
+                                  {h}
+                                </th>
+                              ))}
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-border">
+                            {rows.map((p) => {
+                              const config = STATUS_CONFIG[p.status]
+                              const canAct = p.status !== 'paid'
+                              const isOverdue = p.status === 'overdue'
+                              return (
+                                <tr key={p.id} className="hover:bg-muted/10 transition-colors">
+                                  <td className="px-4 py-3">
+                                    <p className="font-body font-medium text-foreground">{p.studentName}</p>
+                                    <p className="font-body text-xs text-muted-foreground">{p.studentEmail}</p>
+                                  </td>
+                                  <td className="px-4 py-3 font-body text-foreground">
+                                    {formatAmount(p.amount, p.currency)}
+                                  </td>
+                                  <td className="px-4 py-3 font-body text-foreground">
+                                    {formatDate(p.dueDate as string)}
+                                  </td>
+                                  <td className="px-4 py-3">
+                                    <div>
+                                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-body font-medium border ${config.classes}`}>
+                                        {config.label}
+                                      </span>
+                                      {p.markedPaidManually && (
+                                        <p className="font-body text-xs text-muted-foreground mt-0.5">Manual</p>
+                                      )}
+                                      {notifResult[p.id] && (
+                                        <p className="font-body text-xs text-green-600 mt-0.5">{notifResult[p.id]}</p>
+                                      )}
+                                    </div>
+                                  </td>
+                                  <td className="px-4 py-3">
+                                    {canAct && (
+                                      <div className="flex flex-wrap gap-2">
+                                        <button
+                                          onClick={() => handleMarkPaid(p.id, p.studentName)}
+                                          disabled={markingPaid === p.id}
+                                          className="text-xs font-body text-green-700 hover:text-green-800 border border-green-200 bg-green-50 hover:bg-green-100 rounded px-2 py-1 transition-colors disabled:opacity-50"
+                                        >
+                                          {markingPaid === p.id ? '…' : 'Mark paid'}
+                                        </button>
+                                        <button
+                                          onClick={() => handleSendNotif(p.id, isOverdue ? 'overdue' : 'reminder')}
+                                          disabled={sendingNotif === p.id}
+                                          className="text-xs font-body text-amber-700 hover:text-amber-800 border border-amber-200 bg-amber-50 hover:bg-amber-100 rounded px-2 py-1 transition-colors disabled:opacity-50"
+                                        >
+                                          {sendingNotif === p.id ? '…' : isOverdue ? 'Send overdue notice' : 'Send reminder'}
+                                        </button>
+                                        <button
+                                          onClick={() => handleDelete(p.id)}
+                                          disabled={deleting === p.id}
+                                          className="text-xs font-body text-muted-foreground hover:text-red-600 transition-colors disabled:opacity-50"
+                                        >
+                                          {deleting === p.id ? '…' : 'Delete'}
+                                        </button>
+                                      </div>
+                                    )}
+                                  </td>
+                                </tr>
+                              )
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
             </div>
           )}
         </div>

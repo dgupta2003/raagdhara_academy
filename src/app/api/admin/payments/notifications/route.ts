@@ -74,22 +74,26 @@ export async function POST(request: NextRequest) {
     const dueDateStr = formatDateForEmail(payment.dueDate as string)
     const overdueCount = daysOverdue(payment.dueDate as string)
 
-    const portalUrl = 'https://raagdhara.com/student'
-    const html = paymentReminderEmail({
-      studentName: payment.studentName,
-      amount: amountStr,
-      dueDate: dueDateStr,
-      daysOverdue: type === 'overdue' ? overdueCount : undefined,
-      portalUrl,
-    })
-
     const resend = new Resend(process.env.RESEND_API_KEY)
     const subjectPrefix = type === 'overdue' ? `Overdue invoice (${overdueCount}d)` : 'Payment reminder'
     const subject = `${subjectPrefix}: ${amountStr} — Raagdhara Academy`
 
-    const recipients: string[] = [payment.studentEmail]
+    // Send to student
+    resend.emails.send({
+      from: 'Raagdhara Music Academy <noreply@raagdhara.com>',
+      to: payment.studentEmail,
+      subject,
+      html: paymentReminderEmail({
+        studentName: payment.studentName,
+        amount: amountStr,
+        dueDate: dueDateStr,
+        daysOverdue: type === 'overdue' ? overdueCount : undefined,
+        portalUrl: 'https://raagdhara.com/student/payments',
+      }),
+    }).catch((err: unknown) => console.error('Reminder email (student) failed:', err))
 
-    // Add parent email if student is linked to a guardian
+    // Send to parent with parent portal URL if linked
+    let guardianEmail: string | null = null
     if (student?.guardianUid) {
       try {
         const guardianSnap = await adminDb
@@ -99,8 +103,20 @@ export async function POST(request: NextRequest) {
           .get()
         if (!guardianSnap.empty) {
           const guardian = guardianSnap.docs[0].data() as Guardian
-          if (guardian.email && !recipients.includes(guardian.email)) {
-            recipients.push(guardian.email)
+          if (guardian.email && guardian.email !== payment.studentEmail) {
+            guardianEmail = guardian.email
+            resend.emails.send({
+              from: 'Raagdhara Music Academy <noreply@raagdhara.com>',
+              to: guardian.email,
+              subject,
+              html: paymentReminderEmail({
+                studentName: payment.studentName,
+                amount: amountStr,
+                dueDate: dueDateStr,
+                daysOverdue: type === 'overdue' ? overdueCount : undefined,
+                portalUrl: 'https://raagdhara.com/parent/payments',
+              }),
+            }).catch((err: unknown) => console.error('Reminder email (parent) failed:', err))
           }
         }
       } catch {
@@ -108,14 +124,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    for (const email of recipients) {
-      resend.emails.send({
-        from: 'Raagdhara Music Academy <noreply@raagdhara.com>',
-        to: email,
-        subject,
-        html,
-      }).catch((err: unknown) => console.error('Reminder email failed:', err))
-    }
+    const recipients = guardianEmail ? [payment.studentEmail, guardianEmail] : [payment.studentEmail]
 
     // For overdue: also alert admin
     if (type === 'overdue') {

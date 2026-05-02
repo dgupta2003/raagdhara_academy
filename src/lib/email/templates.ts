@@ -406,6 +406,37 @@ export function paymentOverdueAdminEmail(data: PaymentOverdueAdminEmailData): st
   return baseLayout('Overdue Invoice — Raagdhara Academy', body);
 }
 
+export interface InvoicePaidStudentEmailData {
+  studentName: string;
+  amount: string;       // pre-formatted, e.g. "₹1,500" or "$100"
+  paidAt: string;       // human-readable, e.g. "2 May 2026, 3:15 PM"
+  method: 'razorpay' | 'manual';
+  portalUrl: string;
+}
+
+export function invoicePaidStudentEmail(data: InvoicePaidStudentEmailData): string {
+  const body = `
+    <h1 style="margin:0 0 8px;font-size:22px;color:#15803D;">Payment confirmed</h1>
+    <p style="margin:0 0 24px;font-size:15px;color:#555555;line-height:1.6;">
+      Hi ${data.studentName}, your payment has been received. Thank you!
+    </p>
+
+    <table width="100%" cellpadding="0" cellspacing="0" style="background-color:${BRAND_BG};border-radius:6px;padding:16px 20px;margin-bottom:24px;">
+      <tr><td colspan="2" style="padding-bottom:10px;font-size:12px;font-weight:bold;color:${BRAND_BROWN};letter-spacing:1px;text-transform:uppercase;">Payment details</td></tr>
+      ${detailRow('Amount', data.amount)}
+      ${detailRow('Paid on', data.paidAt)}
+      ${detailRow('Method', data.method === 'razorpay' ? 'Online (Razorpay)' : 'Recorded by academy')}
+    </table>
+
+    ${ctaButton('View Payment History', data.portalUrl)}
+
+    <div style="margin:28px 0 0;padding-top:20px;border-top:1px solid #eeeeee;">
+      <p style="margin:0;font-size:13px;color:#888888;">With warm regards,<br/><strong style="color:${BRAND_BROWN};">Vaishnavi Gupta</strong><br/>Raagdhara Music Academy</p>
+    </div>
+  `;
+  return baseLayout('Payment Confirmed — Raagdhara Music Academy', body);
+}
+
 // ── Consultation email templates ─────────────────────────────────────────────
 
 export function consultationAdminNotificationEmail(data: ConsultationEmailData): string {

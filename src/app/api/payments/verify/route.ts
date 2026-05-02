@@ -3,8 +3,8 @@ import { cookies } from 'next/headers'
 import { createHmac } from 'crypto'
 import { Resend } from 'resend'
 import { adminAuth, adminDb } from '@/lib/firebase/admin'
-import type { Payment } from '@/lib/firebase/types'
-import { invoicePaidAdminEmail } from '@/lib/email/templates'
+import type { Payment, Guardian } from '@/lib/firebase/types'
+import { invoicePaidAdminEmail, invoicePaidStudentEmail } from '@/lib/email/templates'
 
 const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
 
@@ -61,11 +61,12 @@ export async function POST(request: NextRequest) {
     updatedAt: paidAt,
   })
 
-  // Notify admin fire-and-forget
   const resend = new Resend(process.env.RESEND_API_KEY)
-  const adminEmail = process.env.ADMIN_EMAIL ?? 'raagdharamusic@gmail.com'
   const amountStr = formatAmountForEmail(payment.amount, payment.currency)
   const paidAtStr = paidAt.toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })
+
+  // Notify admin fire-and-forget
+  const adminEmail = process.env.ADMIN_EMAIL ?? 'raagdharamusic@gmail.com'
   resend.emails.send({
     from: 'Raagdhara Music Academy <noreply@raagdhara.com>',
     to: adminEmail,
@@ -78,6 +79,56 @@ export async function POST(request: NextRequest) {
       method: 'razorpay',
     }),
   }).catch((err: unknown) => console.error('Admin paid email failed:', err))
+
+  // Notify student + parent fire-and-forget
+  ;(async () => {
+    try {
+      const studentDoc = await adminDb.collection('students').doc(payment.studentId).get()
+      const student = studentDoc.data()
+
+      // Send to student
+      resend.emails.send({
+        from: 'Raagdhara Music Academy <noreply@raagdhara.com>',
+        to: payment.studentEmail,
+        subject: `Payment confirmed — ${amountStr}`,
+        html: invoicePaidStudentEmail({
+          studentName: payment.studentName,
+          amount: amountStr,
+          paidAt: paidAtStr,
+          method: 'razorpay',
+          portalUrl: 'https://raagdhara.com/student/payments',
+        }),
+      }).catch((err: unknown) => console.error('Student paid email failed:', err))
+
+      // Send to parent if linked
+      if (student?.guardianUid) {
+        const guardianSnap = await adminDb
+          .collection('guardians')
+          .where('uid', '==', student.guardianUid)
+          .limit(1)
+          .get()
+        if (!guardianSnap.empty) {
+          const guardian = guardianSnap.docs[0].data() as Guardian
+          if (guardian.email && guardian.email !== payment.studentEmail) {
+            resend.emails.send({
+              from: 'Raagdhara Music Academy <noreply@raagdhara.com>',
+              to: guardian.email,
+              subject: `Payment confirmed — ${amountStr}`,
+              html: invoicePaidStudentEmail({
+                studentName: payment.studentName,
+                amount: amountStr,
+                paidAt: paidAtStr,
+                method: 'razorpay',
+                portalUrl: 'https://raagdhara.com/parent/payments',
+              }),
+            }).catch((err: unknown) => console.error('Parent paid email failed:', err))
+          }
+        }
+      }
+    } catch (err) {
+      console.error('[payments/verify] student confirmation email failed:', err)
+    }
+  })()
 
   return NextResponse.json({ success: true })
 }

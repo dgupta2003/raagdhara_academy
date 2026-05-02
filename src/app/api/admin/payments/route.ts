@@ -6,7 +6,7 @@ import { adminAuth, adminDb } from '@/lib/firebase/admin'
 import type { Student, Settings, Guardian } from '@/lib/firebase/types'
 import { resolveStudentFee } from '@/lib/payments/calculator'
 import { getUsdToInrRate } from '@/lib/payments/exchange-rate'
-import { invoiceRaisedEmail, invoicePaidAdminEmail } from '@/lib/email/templates'
+import { invoiceRaisedEmail, invoicePaidAdminEmail, invoicePaidStudentEmail } from '@/lib/email/templates'
 
 const DEFAULT_SETTINGS: Settings = {
   defaultPaymentDay: 1,
@@ -73,14 +73,24 @@ async function sendInvoiceRaisedEmails(
   dueDate: string
 ): Promise<void> {
   const resend = new Resend(process.env.RESEND_API_KEY)
-  const portalUrl = 'https://raagdhara.com/student'
   const amountStr = formatAmountForEmail(amount, currency)
   const dueDateStr = formatDateForEmail(dueDate)
-  const html = invoiceRaisedEmail({ studentName: student.displayName, amount: amountStr, dueDate: dueDateStr, portalUrl })
+  const subject = `New invoice: ${amountStr} due ${dueDateStr}`
 
-  const recipients = [student.email]
+  // Send to student
+  resend.emails.send({
+    from: 'Raagdhara Music Academy <noreply@raagdhara.com>',
+    to: student.email,
+    subject,
+    html: invoiceRaisedEmail({
+      studentName: student.displayName,
+      amount: amountStr,
+      dueDate: dueDateStr,
+      portalUrl: 'https://raagdhara.com/student/payments',
+    }),
+  }).catch((err: unknown) => console.error('Invoice email (student) failed:', err))
 
-  // Find parent email if linked
+  // Send to parent with parent portal URL if linked
   if (student.guardianUid) {
     try {
       const guardianSnap = await adminDb
@@ -90,22 +100,23 @@ async function sendInvoiceRaisedEmails(
         .get()
       if (!guardianSnap.empty) {
         const guardian = guardianSnap.docs[0].data() as Guardian
-        if (guardian.email && !recipients.includes(guardian.email)) {
-          recipients.push(guardian.email)
+        if (guardian.email && guardian.email !== student.email) {
+          resend.emails.send({
+            from: 'Raagdhara Music Academy <noreply@raagdhara.com>',
+            to: guardian.email,
+            subject,
+            html: invoiceRaisedEmail({
+              studentName: student.displayName,
+              amount: amountStr,
+              dueDate: dueDateStr,
+              portalUrl: 'https://raagdhara.com/parent/payments',
+            }),
+          }).catch((err: unknown) => console.error('Invoice email (parent) failed:', err))
         }
       }
     } catch {
       // silently skip guardian lookup failure
     }
-  }
-
-  for (const email of recipients) {
-    resend.emails.send({
-      from: 'Raagdhara Music Academy <noreply@raagdhara.com>',
-      to: email,
-      subject: `New invoice: ${amountStr} due ${dueDateStr}`,
-      html,
-    }).catch((err: unknown) => console.error('Invoice email failed:', err))
   }
 }
 
@@ -248,22 +259,77 @@ export async function PATCH(request: NextRequest) {
       updatedAt: FieldValue.serverTimestamp(),
     })
 
-    // Notify admin
     const resend = new Resend(process.env.RESEND_API_KEY)
-    const adminEmail = process.env.ADMIN_EMAIL ?? 'raagdharamusic@gmail.com'
     const amountStr = formatAmountForEmail(payment.amount as number, payment.currency as string)
+    const paidAtStr = paidAt.toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })
+    const studentName = payment.studentName as string
+    const studentEmail = payment.studentEmail as string
+    const studentId = payment.studentId as string
+
+    // Notify admin
+    const adminEmail = process.env.ADMIN_EMAIL ?? 'raagdharamusic@gmail.com'
     resend.emails.send({
       from: 'Raagdhara Music Academy <noreply@raagdhara.com>',
       to: adminEmail,
-      subject: `Payment received: ${payment.studentName} — ${amountStr}`,
+      subject: `Payment received: ${studentName} — ${amountStr}`,
       html: invoicePaidAdminEmail({
-        studentName: payment.studentName as string,
-        studentEmail: payment.studentEmail as string,
+        studentName,
+        studentEmail,
         amount: amountStr,
-        paidAt: paidAt.toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }),
+        paidAt: paidAtStr,
         method: 'manual',
       }),
     }).catch((err: unknown) => console.error('Admin paid email failed:', err))
+
+    // Notify student + parent fire-and-forget
+    ;(async () => {
+      try {
+        const studentDoc = await adminDb.collection('students').doc(studentId).get()
+        const student = studentDoc.data()
+
+        // Send to student
+        resend.emails.send({
+          from: 'Raagdhara Music Academy <noreply@raagdhara.com>',
+          to: studentEmail,
+          subject: `Payment confirmed — ${amountStr}`,
+          html: invoicePaidStudentEmail({
+            studentName,
+            amount: amountStr,
+            paidAt: paidAtStr,
+            method: 'manual',
+            portalUrl: 'https://raagdhara.com/student/payments',
+          }),
+        }).catch((err: unknown) => console.error('Student paid email failed:', err))
+
+        // Send to parent if linked
+        if (student?.guardianUid) {
+          const guardianSnap = await adminDb
+            .collection('guardians')
+            .where('uid', '==', student.guardianUid)
+            .limit(1)
+            .get()
+          if (!guardianSnap.empty) {
+            const guardian = guardianSnap.docs[0].data() as Guardian
+            if (guardian.email && guardian.email !== studentEmail) {
+              resend.emails.send({
+                from: 'Raagdhara Music Academy <noreply@raagdhara.com>',
+                to: guardian.email,
+                subject: `Payment confirmed — ${amountStr}`,
+                html: invoicePaidStudentEmail({
+                  studentName,
+                  amount: amountStr,
+                  paidAt: paidAtStr,
+                  method: 'manual',
+                  portalUrl: 'https://raagdhara.com/parent/payments',
+                }),
+              }).catch((err: unknown) => console.error('Parent paid email failed:', err))
+            }
+          }
+        }
+      } catch (err) {
+        console.error('[admin/payments PATCH] student confirmation email failed:', err)
+      }
+    })()
 
     return NextResponse.json({ success: true })
   } catch (err) {

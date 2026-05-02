@@ -36,7 +36,8 @@ export interface Student {
   personalSchedule?: BatchSession[]  // per-student schedule for personal batch
   status: StudentStatus
   enrollmentDate: FirestoreTimestamp
-  customFeeOverride?: number
+  nriUsdFee?: number          // negotiated USD fee in whole dollars (NRI students only); takes precedence over customFeeOverride
+  customFeeOverride?: number  // paise for India students; legacy dollars for old NRI USD students
   paymentDueDayOverride?: number
   isMinor?: boolean
   guardianUid?: string

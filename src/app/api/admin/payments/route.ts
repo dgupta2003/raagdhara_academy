@@ -5,6 +5,7 @@ import { Resend } from 'resend'
 import { adminAuth, adminDb } from '@/lib/firebase/admin'
 import type { Student, Settings, Guardian } from '@/lib/firebase/types'
 import { resolveStudentFee } from '@/lib/payments/calculator'
+import { getUsdToInrRate } from '@/lib/payments/exchange-rate'
 import { invoiceRaisedEmail, invoicePaidAdminEmail } from '@/lib/email/templates'
 
 const DEFAULT_SETTINGS: Settings = {
@@ -111,11 +112,12 @@ async function sendInvoiceRaisedEmails(
 async function createPaymentForStudent(
   student: Student & { id: string },
   settings: Settings,
-  month: string
+  month: string,
+  exchangeRate: number
 ): Promise<'created' | 'skipped'> {
   if (await alreadyHasPayment(student.id, month)) return 'skipped'
 
-  const { amount, currency } = resolveStudentFee(student, settings)
+  const { amount, currency } = resolveStudentFee(student, settings, exchangeRate)
   const paymentDay = student.paymentDueDayOverride ?? settings.defaultPaymentDay
   const dueDate = buildDueDate(paymentDay, month)
 
@@ -178,7 +180,10 @@ export async function POST(request: NextRequest) {
 
     const targetMonth = month ?? new Date().toISOString().slice(0, 7)
 
-    const settingsDoc = await adminDb.collection('settings').doc('global').get()
+    const [settingsDoc, exchangeRate] = await Promise.all([
+      adminDb.collection('settings').doc('global').get(),
+      getUsdToInrRate().catch(() => 85),
+    ])
     const settings: Settings = settingsDoc.exists
       ? (settingsDoc.data() as Settings)
       : DEFAULT_SETTINGS
@@ -193,7 +198,7 @@ export async function POST(request: NextRequest) {
       let skipped = 0
       for (const doc of snap.docs) {
         const student = { id: doc.id, ...(doc.data() as Student) }
-        const result = await createPaymentForStudent(student, settings, targetMonth)
+        const result = await createPaymentForStudent(student, settings, targetMonth, exchangeRate)
         if (result === 'created') created++
         else skipped++
       }
@@ -209,7 +214,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Student not found' }, { status: 404 })
     }
     const student = { id: studentDoc.id, ...(studentDoc.data() as Student) }
-    const result = await createPaymentForStudent(student, settings, targetMonth)
+    const result = await createPaymentForStudent(student, settings, targetMonth, exchangeRate)
     return NextResponse.json({ created: result === 'created' ? 1 : 0, skipped: result === 'skipped' ? 1 : 0 })
   } catch (err) {
     console.error('Admin payments POST error:', err)

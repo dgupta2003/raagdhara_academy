@@ -38,6 +38,12 @@ export async function PUT(
   if (body.personalSchedule !== undefined) {
     update.personalSchedule = Array.isArray(body.personalSchedule) ? body.personalSchedule : null;
   }
+  if (body.nriUsdFee !== undefined) {
+    update.nriUsdFee = body.nriUsdFee ?? null;
+  }
+  if (body.nriCurrencyPreference !== undefined) {
+    update.nriCurrencyPreference = body.nriCurrencyPreference;
+  }
   if (body.customFeeOverride !== undefined) {
     update.customFeeOverride = body.customFeeOverride ?? null;
   }

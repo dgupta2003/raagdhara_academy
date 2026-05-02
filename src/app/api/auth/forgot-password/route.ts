@@ -13,12 +13,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Email required' }, { status: 400 });
   }
 
-  const origin = request.headers.get('origin') || 'https://raagdhara.com';
-
   try {
-    const resetLink = await adminAuth.generatePasswordResetLink(email, {
-      url: `${origin}/auth/login`,
-    });
+    const resetLink = await adminAuth.generatePasswordResetLink(email);
 
     const resend = new Resend(process.env.RESEND_API_KEY);
     await resend.emails.send({
@@ -27,8 +23,9 @@ export async function POST(request: NextRequest) {
       subject: 'Reset your Raagdhara password',
       html: forgotPasswordEmail({ email, resetLink }),
     });
-  } catch {
-    // Silently swallow — never reveal whether the email exists in our system
+  } catch (err) {
+    // Never reveal to the client whether the email exists — keep returning success
+    console.error('[forgot-password] failed to send reset email:', err);
   }
 
   return NextResponse.json({ success: true });

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import type { Student, Payment, PaymentStatus, Guardian } from '@/lib/firebase/types';
 
@@ -87,15 +87,26 @@ export default function StudentEditClient({
     batchType: student.batchType,
     batchLabel: student.batchLabel ?? '',
     category: student.category,
+    nriUsdFee: student.nriUsdFee?.toString() ?? '',
+    nriCurrencyPreference: (student.nriCurrencyPreference ?? 'usd') as 'usd' | 'inr-equivalent',
     customFeeOverride: student.customFeeOverride?.toString() ?? '',
     paymentDueDayOverride: student.paymentDueDayOverride?.toString() ?? '',
   });
+
+  const [liveRate, setLiveRate] = useState<number | null>(null);
+  useEffect(() => {
+    fetch('/api/payments/exchange-rate')
+      .then((r) => r.json())
+      .then((d) => { if (typeof d.rate === 'number') setLiveRate(d.rate); })
+      .catch(() => {});
+  }, []);
 
   const handleSave = async () => {
     setIsSaving(true);
     setSaveError('');
     setSaveSuccess(false);
 
+    const isNri = fields.category === 'nri';
     try {
       const res = await fetch(`/api/admin/students/${student.id}`, {
         method: 'PUT',
@@ -106,7 +117,13 @@ export default function StudentEditClient({
           batchType: fields.batchType,
           batchLabel: fields.batchLabel,
           category: fields.category,
-          customFeeOverride: fields.customFeeOverride ? Number(fields.customFeeOverride) : null,
+          ...(isNri ? {
+            nriUsdFee: fields.nriUsdFee ? Number(fields.nriUsdFee) : null,
+            nriCurrencyPreference: fields.nriCurrencyPreference,
+            customFeeOverride: null,
+          } : {
+            customFeeOverride: fields.customFeeOverride ? Number(fields.customFeeOverride) : null,
+          }),
           paymentDueDayOverride: fields.paymentDueDayOverride ? Number(fields.paymentDueDayOverride) : null,
         }),
       });
@@ -187,11 +204,54 @@ export default function StudentEditClient({
       </div>
 
       <div className="grid grid-cols-2 gap-4 pt-2 border-t border-border">
-        <div>
-          <label className={labelClass}>Custom fee override (₹ paise)</label>
-          <input type="number" value={fields.customFeeOverride} onChange={(e) => setFields((p) => ({ ...p, customFeeOverride: e.target.value }))} className={inputClass} placeholder="Leave blank to use global" />
-          <p className="mt-1 text-xs text-muted-foreground font-body">e.g. 50000 = ₹500</p>
-        </div>
+        {fields.category === 'nri' ? (
+          <>
+            <div>
+              <label className={labelClass}>Negotiated fee (USD $)</label>
+              <input
+                type="number"
+                min={0}
+                value={fields.nriUsdFee}
+                onChange={(e) => setFields((p) => ({ ...p, nriUsdFee: e.target.value }))}
+                className={inputClass}
+                placeholder="e.g. 100 for $100"
+              />
+              {fields.nriUsdFee && fields.nriCurrencyPreference === 'inr-equivalent' && liveRate ? (
+                <p className="mt-1 text-xs text-muted-foreground font-body">
+                  ≈ ₹{Math.round(Number(fields.nriUsdFee) * liveRate).toLocaleString('en-IN')} at today&apos;s rate (1 USD = ₹{Math.round(liveRate)})
+                </p>
+              ) : fields.nriUsdFee && fields.nriCurrencyPreference === 'usd' ? (
+                <p className="mt-1 text-xs text-muted-foreground font-body">
+                  Invoice in USD; Razorpay converts to INR at checkout
+                </p>
+              ) : (
+                <p className="mt-1 text-xs text-muted-foreground font-body">Leave blank to use global NRI fee</p>
+              )}
+            </div>
+            <div>
+              <label className={labelClass}>Payment currency</label>
+              <select
+                value={fields.nriCurrencyPreference}
+                onChange={(e) => setFields((p) => ({ ...p, nriCurrencyPreference: e.target.value as 'usd' | 'inr-equivalent' }))}
+                className={inputClass}
+              >
+                <option value="usd">USD — student pays in USD</option>
+                <option value="inr-equivalent">INR — converted from USD at invoice time</option>
+              </select>
+              <p className="mt-1 text-xs text-muted-foreground font-body">
+                {fields.nriCurrencyPreference === 'inr-equivalent'
+                  ? 'Invoice generated in INR at live USD/INR rate'
+                  : 'Invoice in USD; Razorpay converts to INR at checkout'}
+              </p>
+            </div>
+          </>
+        ) : (
+          <div>
+            <label className={labelClass}>Custom fee override (₹ paise)</label>
+            <input type="number" value={fields.customFeeOverride} onChange={(e) => setFields((p) => ({ ...p, customFeeOverride: e.target.value }))} className={inputClass} placeholder="Leave blank to use global" />
+            <p className="mt-1 text-xs text-muted-foreground font-body">e.g. 50000 = ₹500</p>
+          </div>
+        )}
         <div>
           <label className={labelClass}>Payment due day override</label>
           <input type="number" min={1} max={28} value={fields.paymentDueDayOverride} onChange={(e) => setFields((p) => ({ ...p, paymentDueDayOverride: e.target.value }))} className={inputClass} placeholder="Leave blank for global default" />

@@ -81,6 +81,10 @@ export default function StudentEditClient({
   const [inviteParentMsg, setInviteParentMsg] = useState('');
   const [showGuardianForm, setShowGuardianForm] = useState(false);
 
+  // Collapsible section state
+  const [isPaymentsOpen, setIsPaymentsOpen] = useState(true);
+  const [isGuardianOpen, setIsGuardianOpen] = useState(!student.guardianUid);
+
   const [fields, setFields] = useState({
     status: student.status,
     courseId: student.courseId,
@@ -271,9 +275,24 @@ export default function StudentEditClient({
       </button>
 
       {/* Payments section */}
-      <div className="pt-4 border-t border-border space-y-3">
-        <div className="flex items-center justify-between">
-          <h2 className="font-headline text-base font-semibold text-foreground">Payments</h2>
+      <div className="pt-4 border-t border-border">
+        {/* Header row: chevron toggle + title on left, action button on right */}
+        <div className="flex items-center justify-between mb-3">
+          <button
+            onClick={() => setIsPaymentsOpen(v => !v)}
+            className="flex items-center gap-2 text-left"
+          >
+            <svg
+              className={`w-4 h-4 text-muted-foreground flex-shrink-0 transition-transform duration-200 ${isPaymentsOpen ? 'rotate-180' : ''}`}
+              fill="none" viewBox="0 0 24 24" stroke="currentColor"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
+            <h2 className="font-headline text-base font-semibold text-foreground">Payments</h2>
+            {recentPayments.length > 0 && (
+              <span className="font-body text-xs text-muted-foreground">({recentPayments.length})</span>
+            )}
+          </button>
           <button
             onClick={async () => {
               setInvoiceLoading(true);
@@ -301,40 +320,60 @@ export default function StudentEditClient({
           </button>
         </div>
 
-        {invoiceMsg && (
-          <p className={`text-xs font-body px-3 py-2 rounded-md border ${invoiceMsg.startsWith('Error') ? 'text-red-700 bg-red-50 border-red-200' : 'text-green-700 bg-green-50 border-green-200'}`}>
-            {invoiceMsg}
-          </p>
-        )}
+        {isPaymentsOpen && (
+          <div className="space-y-3">
+            {invoiceMsg && (
+              <p className={`text-xs font-body px-3 py-2 rounded-md border ${invoiceMsg.startsWith('Error') ? 'text-red-700 bg-red-50 border-red-200' : 'text-green-700 bg-green-50 border-green-200'}`}>
+                {invoiceMsg}
+              </p>
+            )}
 
-        {recentPayments.length === 0 ? (
-          <p className="text-sm font-body text-muted-foreground">No invoices yet.</p>
-        ) : (
-          <div className="space-y-2">
-            {recentPayments.map((p) => {
-              const cfg = STATUS_CONFIG[p.status];
-              return (
-                <div key={p.id} className="flex items-center justify-between py-2 px-3 rounded-md bg-muted/20">
-                  <div>
-                    <span className="font-body text-sm font-medium text-foreground">{formatAmount(p.amount, p.currency)}</span>
-                    <span className="font-body text-xs text-muted-foreground ml-2">due {formatDate(p.dueDate as string)}</span>
-                  </div>
-                  <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-body font-medium border ${cfg.classes}`}>
-                    {cfg.label}
-                  </span>
-                </div>
-              );
-            })}
+            {recentPayments.length === 0 ? (
+              <p className="text-sm font-body text-muted-foreground">No invoices yet.</p>
+            ) : (
+              <div className="space-y-2">
+                {recentPayments.map((p) => {
+                  const cfg = STATUS_CONFIG[p.status];
+                  return (
+                    <div key={p.id} className="flex items-center justify-between py-2 px-3 rounded-md bg-muted/20">
+                      <div>
+                        <span className="font-body text-sm font-medium text-foreground">{formatAmount(p.amount, p.currency)}</span>
+                        <span className="font-body text-xs text-muted-foreground ml-2">due {formatDate(p.dueDate as string)}</span>
+                      </div>
+                      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-body font-medium border ${cfg.classes}`}>
+                        {cfg.label}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         )}
       </div>
+
       {/* Guardian section */}
-      <div className="pt-4 border-t border-border space-y-3">
-        <div className="flex items-center justify-between">
-          <h2 className="font-headline text-base font-semibold text-foreground">Guardian / Parent</h2>
-          {!guardianInfo && !showGuardianForm && (
+      <div className="pt-4 border-t border-border">
+        {/* Header row: chevron toggle + title; action button only when collapsed and no guardian */}
+        <div className="flex items-center justify-between mb-3">
+          <button
+            onClick={() => setIsGuardianOpen(v => !v)}
+            className="flex items-center gap-2 text-left"
+          >
+            <svg
+              className={`w-4 h-4 text-muted-foreground flex-shrink-0 transition-transform duration-200 ${isGuardianOpen ? 'rotate-180' : ''}`}
+              fill="none" viewBox="0 0 24 24" stroke="currentColor"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
+            <h2 className="font-headline text-base font-semibold text-foreground">Guardian / Parent</h2>
+            {guardianInfo && (
+              <span className="font-body text-xs text-muted-foreground truncate max-w-[120px]">{guardianInfo.displayName}</span>
+            )}
+          </button>
+          {!guardianInfo && !showGuardianForm && !isGuardianOpen && (
             <button
-              onClick={() => setShowGuardianForm(true)}
+              onClick={() => { setIsGuardianOpen(true); setShowGuardianForm(true); }}
               className="px-3 py-1.5 text-xs font-body font-medium rounded-md border border-border text-foreground hover:bg-muted/30 transition-contemplative"
             >
               Link guardian
@@ -342,48 +381,63 @@ export default function StudentEditClient({
           )}
         </div>
 
-        {guardianInfo ? (
+        {isGuardianOpen && (
           <div className="space-y-3">
-            <div className="p-3 bg-muted/20 rounded-md space-y-1">
-              <p className="font-body text-sm font-medium text-foreground">{guardianInfo.displayName}</p>
-              <p className="font-body text-xs text-muted-foreground">{guardianInfo.email}</p>
-              {guardianInfo.phone && (
-                <p className="font-body text-xs text-muted-foreground">{guardianInfo.countryCode} {guardianInfo.phone} · {guardianInfo.relationship}</p>
-              )}
-              {guardianInfo.inviteSentAt && (
-                <p className="font-body text-xs text-green-600">Portal invite sent</p>
-              )}
-            </div>
-
-            <button
-              onClick={async () => {
-                setInviteParentLoading(true);
-                setInviteParentMsg('');
-                try {
-                  const res = await fetch(`/api/admin/guardians/${guardianInfo.id}/invite`, { method: 'POST' });
-                  const data = await res.json();
-                  if (!res.ok) throw new Error(data.error ?? 'Failed');
-                  setInviteParentMsg('Invite sent to parent.');
-                  router.refresh();
-                } catch (err) {
-                  setInviteParentMsg(`Error: ${(err as Error).message}`);
-                } finally {
-                  setInviteParentLoading(false);
-                }
-              }}
-              disabled={inviteParentLoading}
-              className="px-3 py-1.5 text-xs font-body font-medium rounded-md border border-indigo-300 text-indigo-700 bg-indigo-50 hover:bg-indigo-100 disabled:opacity-60 transition-contemplative"
-            >
-              {inviteParentLoading ? 'Sending…' : guardianInfo.inviteSentAt ? 'Resend portal invite to parent' : 'Send portal invite to parent'}
-            </button>
-
-            {inviteParentMsg && (
-              <p className={`text-xs font-body px-3 py-2 rounded-md border ${inviteParentMsg.startsWith('Error') ? 'text-red-700 bg-red-50 border-red-200' : 'text-green-700 bg-green-50 border-green-200'}`}>
-                {inviteParentMsg}
-              </p>
+            {!guardianInfo && !showGuardianForm && (
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-body text-muted-foreground">No guardian linked.</p>
+                <button
+                  onClick={() => setShowGuardianForm(true)}
+                  className="px-3 py-1.5 text-xs font-body font-medium rounded-md border border-border text-foreground hover:bg-muted/30 transition-contemplative"
+                >
+                  Link guardian
+                </button>
+              </div>
             )}
-          </div>
-        ) : showGuardianForm ? (
+
+            {guardianInfo ? (
+              <div className="space-y-3">
+                <div className="p-3 bg-muted/20 rounded-md space-y-1">
+                  <p className="font-body text-sm font-medium text-foreground">{guardianInfo.displayName}</p>
+                  <p className="font-body text-xs text-muted-foreground">{guardianInfo.email}</p>
+                  {guardianInfo.phone && (
+                    <p className="font-body text-xs text-muted-foreground">{guardianInfo.countryCode} {guardianInfo.phone} · {guardianInfo.relationship}</p>
+                  )}
+                  {guardianInfo.inviteSentAt && (
+                    <p className="font-body text-xs text-green-600">Portal invite sent</p>
+                  )}
+                </div>
+
+                <button
+                  onClick={async () => {
+                    if (!guardianInfo) return;
+                    setInviteParentLoading(true);
+                    setInviteParentMsg('');
+                    try {
+                      const res = await fetch(`/api/admin/guardians/${guardianInfo.id}/invite`, { method: 'POST' });
+                      const data = await res.json();
+                      if (!res.ok) throw new Error(data.error ?? 'Failed');
+                      setInviteParentMsg('Invite sent to parent.');
+                      router.refresh();
+                    } catch (err) {
+                      setInviteParentMsg(`Error: ${(err as Error).message}`);
+                    } finally {
+                      setInviteParentLoading(false);
+                    }
+                  }}
+                  disabled={inviteParentLoading}
+                  className="px-3 py-1.5 text-xs font-body font-medium rounded-md border border-indigo-300 text-indigo-700 bg-indigo-50 hover:bg-indigo-100 disabled:opacity-60 transition-contemplative"
+                >
+                  {inviteParentLoading ? 'Sending…' : guardianInfo.inviteSentAt ? 'Resend portal invite to parent' : 'Send portal invite to parent'}
+                </button>
+
+                {inviteParentMsg && (
+                  <p className={`text-xs font-body px-3 py-2 rounded-md border ${inviteParentMsg.startsWith('Error') ? 'text-red-700 bg-red-50 border-red-200' : 'text-green-700 bg-green-50 border-green-200'}`}>
+                    {inviteParentMsg}
+                  </p>
+                )}
+              </div>
+            ) : showGuardianForm ? (
           <div className="space-y-3">
             <div className="grid grid-cols-2 gap-3">
               <div>
@@ -475,8 +529,8 @@ export default function StudentEditClient({
               </button>
             </div>
           </div>
-        ) : (
-          <p className="text-sm font-body text-muted-foreground">No guardian linked. Click &ldquo;Link guardian&rdquo; to add one.</p>
+        ) : null}
+        </div>
         )}
       </div>
     </div>

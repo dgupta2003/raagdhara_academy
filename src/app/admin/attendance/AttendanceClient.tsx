@@ -126,6 +126,32 @@ export default function AttendanceClient({
 
   const markedCount = filtered.filter((s) => attendance[s.id]).length;
 
+  // Group filtered students by batchLabel (or batchType as fallback).
+  // Only add collapse headers when >1 distinct group exists.
+  const studentGroups = useMemo(() => {
+    const map = new Map<string, typeof filtered>();
+    filtered.forEach((s) => {
+      const key = s.batchLabel ?? s.batchType;
+      if (!map.has(key)) map.set(key, []);
+      map.get(key)!.push(s);
+    });
+    return map;
+  }, [filtered]);
+
+  const multipleGroups = studentGroups.size > 1;
+
+  // Track collapsed groups by key — default is all open (empty set = nothing collapsed)
+  const allGroupKeys = useMemo(() => Array.from(studentGroups.keys()), [studentGroups]);
+  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
+
+  const toggleGroup = (key: string) => {
+    setCollapsedGroups(prev => {
+      const next = new Set(prev);
+      next.has(key) ? next.delete(key) : next.add(key);
+      return next;
+    });
+  };
+
   const handleSave = async () => {
     if (markedCount === 0) {
       setSaveError('Mark at least one student before saving.');
@@ -230,34 +256,73 @@ export default function AttendanceClient({
       ) : filtered.length === 0 ? (
         <p className="font-body text-sm text-muted-foreground">No active students in this batch.</p>
       ) : (
-        <div className="bg-card rounded-lg border border-border shadow-warm overflow-hidden mb-4">
-          <div className="divide-y divide-border">
-            {filtered.map((student) => (
-              <div key={student.id} className="flex items-center justify-between px-5 py-3">
-                <div>
-                  <p className="font-body text-sm font-medium text-foreground">{student.displayName}</p>
-                  <p className="font-body text-xs text-muted-foreground capitalize">
-                    {student.batchLabel ?? student.batchType}
-                  </p>
-                </div>
-                <div className="flex gap-2">
-                  {STATUS_OPTIONS.map((opt) => (
-                    <button
-                      key={opt.value}
-                      onClick={() => setStatus(student.id, opt.value)}
-                      className={`px-3 py-1 text-xs font-body font-medium rounded-md transition-all ${
-                        attendance[student.id] === opt.value
-                          ? `${opt.style} ring-2`
-                          : 'bg-muted text-muted-foreground hover:bg-muted/80'
-                      }`}
-                    >
-                      {opt.label}
-                    </button>
-                  ))}
-                </div>
+        <div className="space-y-3 mb-4">
+          {allGroupKeys.map((groupKey) => {
+            const groupStudents = studentGroups.get(groupKey)!;
+            const isOpen = !collapsedGroups.has(groupKey);
+            const markedInGroup = groupStudents.filter((s) => attendance[s.id]).length;
+
+            return (
+              <div key={groupKey} className="bg-card rounded-lg border border-border shadow-warm overflow-hidden">
+                {/* Group header — only rendered when multiple groups exist */}
+                {multipleGroups && (
+                  <button
+                    onClick={() => toggleGroup(groupKey)}
+                    className="w-full flex items-center justify-between px-5 py-3 border-b border-border hover:bg-muted/30 transition-contemplative"
+                  >
+                    <div className="flex items-center gap-2">
+                      <svg
+                        className={`w-4 h-4 text-muted-foreground flex-shrink-0 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}
+                        fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                      >
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      </svg>
+                      <span className="font-body text-sm font-medium text-foreground capitalize">{groupKey}</span>
+                      <span className="font-body text-xs text-muted-foreground">
+                        {groupStudents.length} student{groupStudents.length !== 1 ? 's' : ''}
+                      </span>
+                    </div>
+                    <span className="font-body text-xs text-muted-foreground">
+                      {markedInGroup}/{groupStudents.length} marked
+                    </span>
+                  </button>
+                )}
+
+                {/* Students */}
+                {isOpen && (
+                  <div className="divide-y divide-border">
+                    {groupStudents.map((student) => (
+                      <div key={student.id} className="flex items-center justify-between px-5 py-3">
+                        <div>
+                          <p className="font-body text-sm font-medium text-foreground">{student.displayName}</p>
+                          {!multipleGroups && (
+                            <p className="font-body text-xs text-muted-foreground capitalize">
+                              {student.batchLabel ?? student.batchType}
+                            </p>
+                          )}
+                        </div>
+                        <div className="flex gap-2">
+                          {STATUS_OPTIONS.map((opt) => (
+                            <button
+                              key={opt.value}
+                              onClick={() => setStatus(student.id, opt.value)}
+                              className={`px-3 py-1 text-xs font-body font-medium rounded-md transition-all ${
+                                attendance[student.id] === opt.value
+                                  ? `${opt.style} ring-2`
+                                  : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                              }`}
+                            >
+                              {opt.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
-            ))}
-          </div>
+            );
+          })}
         </div>
       )}
 

@@ -1,7 +1,7 @@
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { adminAuth, adminDb } from '@/lib/firebase/admin';
-import StudentSidebar from '@/components/dashboard/StudentSidebar';
+import StudentDashboardShell from '@/components/dashboard/StudentDashboardShell';
 
 async function verifyStudentSession() {
   const cookieStore = cookies();
@@ -24,11 +24,6 @@ export default async function StudentLayout({ children }: { children: React.Reac
   await verifyStudentSession();
 
   return (
-    <div className="flex min-h-screen bg-background">
-      <StudentSidebar />
-      <main className="flex-1 overflow-auto">
-        {children}
-      </main>
-    </div>
+    <StudentDashboardShell>{children}</StudentDashboardShell>
   );
 }

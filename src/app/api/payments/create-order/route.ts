@@ -4,6 +4,7 @@ import Razorpay from 'razorpay'
 import { adminAuth, adminDb } from '@/lib/firebase/admin'
 import type { Payment } from '@/lib/firebase/types'
 import { getUsdToInrRate } from '@/lib/payments/exchange-rate'
+import { canAccessPayment } from '@/lib/payments/access'
 
 async function getStudentUid(): Promise<string | null> {
   const cookieStore = cookies()
@@ -29,7 +30,8 @@ export async function POST(request: NextRequest) {
   if (!paymentDoc.exists) return NextResponse.json({ error: 'Payment not found' }, { status: 404 })
 
   const payment = paymentDoc.data() as Payment
-  if (payment.studentId !== uid) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  const allowed = await canAccessPayment(uid, payment.studentId)
+  if (!allowed) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   if (!['pending', 'sent', 'overdue'].includes(payment.status)) {
     return NextResponse.json({ error: 'Payment is not payable' }, { status: 400 })
   }

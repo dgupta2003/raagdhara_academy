@@ -5,6 +5,7 @@ import { Resend } from 'resend'
 import { adminAuth, adminDb } from '@/lib/firebase/admin'
 import type { Payment, Guardian } from '@/lib/firebase/types'
 import { invoicePaidAdminEmail, invoicePaidStudentEmail } from '@/lib/email/templates'
+import { canAccessPayment } from '@/lib/payments/access'
 
 const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
 
@@ -51,7 +52,8 @@ export async function POST(request: NextRequest) {
   if (!paymentDoc.exists) return NextResponse.json({ error: 'Payment not found' }, { status: 404 })
 
   const payment = paymentDoc.data() as Payment
-  if (payment.studentId !== uid) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  const allowed = await canAccessPayment(uid, payment.studentId)
+  if (!allowed) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
   const paidAt = new Date()
   await paymentRef.update({

@@ -3,11 +3,7 @@
 import Link from 'next/link';
 import Icon from '@/components/ui/AppIcon';
 
-interface HeroSectionProps {
-  onBookConsultation: () => void;
-}
-
-const HeroSection = ({ onBookConsultation }: HeroSectionProps) => {
+const HeroSection = () => {
   return (
     <section className="relative min-h-screen flex items-center justify-center overflow-hidden bg-background">
       <div className="container mx-auto px-4 lg:px-8 relative z-10">

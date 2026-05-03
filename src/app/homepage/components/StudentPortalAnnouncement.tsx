@@ -2,11 +2,7 @@
 
 import Link from 'next/link';
 
-interface Props {
-  onBookConsultation: () => void;
-}
-
-export default function StudentPortalAnnouncement({ onBookConsultation }: Props) {
+export default function StudentPortalAnnouncement() {
   return (
     <section className="border-y border-border bg-background py-16 px-4">
       <div className="max-w-5xl mx-auto">
@@ -81,12 +77,12 @@ export default function StudentPortalAnnouncement({ onBookConsultation }: Props)
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
             </svg>
           </Link>
-          <button
-            onClick={onBookConsultation}
+          <Link
+            href="/free-consultation-booking"
             className="inline-flex items-center gap-2 px-6 py-3 border border-primary text-primary text-sm font-medium rounded-full hover:bg-primary/5 transition-contemplative"
           >
             New student? Book a free consultation
-          </button>
+          </Link>
         </div>
 
       </div>

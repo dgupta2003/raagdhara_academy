@@ -1,11 +1,7 @@
 import Link from 'next/link';
 import Icon from '@/components/ui/AppIcon';
 
-interface CTASectionProps {
-  onBookConsultation: () => void;
-}
-
-const CTASection = ({ onBookConsultation }: CTASectionProps) => {
+const CTASection = () => {
   return (
     <section className="py-20 lg:py-32 bg-gradient-to-br from-primary to-brand-brown-grey relative overflow-hidden">
       {/* Decorative Elements */}
@@ -57,13 +53,13 @@ const CTASection = ({ onBookConsultation }: CTASectionProps) => {
 
           {/* CTA Buttons */}
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-8">
-            <button
-              onClick={onBookConsultation}
+            <Link
+              href="/free-consultation-booking"
               className="inline-flex items-center px-8 py-4 bg-secondary text-secondary-foreground font-cta text-lg rounded-full shadow-warm-lg hover:scale-105 transition-contemplative w-full sm:w-auto"
             >
               Book Free Consultation
               <Icon name="CalendarIcon" size={20} className="ml-2" />
-            </button>
+            </Link>
             <Link
               href="/contact-and-connect"
               className="inline-flex items-center px-8 py-4 bg-primary-foreground text-primary border-2 border-primary-foreground font-cta text-lg rounded-full hover:bg-transparent hover:text-primary-foreground transition-contemplative w-full sm:w-auto"

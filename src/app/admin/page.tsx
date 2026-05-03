@@ -2,18 +2,7 @@ import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { adminAuth, adminDb } from '@/lib/firebase/admin';
-
-function timeAgo(ts: { seconds: number } | string | Date | null): string {
-  if (!ts) return '—';
-  const seconds = typeof ts === 'object' && 'seconds' in ts
-    ? ts.seconds
-    : Math.floor(new Date(ts as string | Date).getTime() / 1000);
-  const diff = Math.floor(Date.now() / 1000) - seconds;
-  if (diff < 60) return 'just now';
-  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
-  if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
-  return `${Math.floor(diff / 86400)}d ago`;
-}
+import RecentLoginsSection from './RecentLoginsSection';
 
 async function getOverviewStats() {
   const cookieStore = cookies();
@@ -41,21 +30,16 @@ async function getOverviewStats() {
 
   const recentLogins = loginAuditSnap.docs.map((d) => {
     const data = d.data();
+    const ts = data.loginAt as { seconds: number } | null;
     return {
       email: data.email as string,
       role: data.role as string,
-      loginAt: data.loginAt as { seconds: number } | null,
+      loginAt: ts ? { seconds: ts.seconds } : null,
     };
   });
 
   return { activeCount, pendingCount, unpaidCount, totalStudents: students.length, uid, recentLogins };
 }
-
-const ROLE_BADGE: Record<string, string> = {
-  admin: 'bg-primary/10 text-primary border border-primary/20',
-  student: 'bg-green-50 text-green-700 border border-green-200',
-  parent: 'bg-indigo-50 text-indigo-700 border border-indigo-200',
-};
 
 export default async function AdminOverviewPage() {
   const { activeCount, pendingCount, unpaidCount, totalStudents, recentLogins } = await getOverviewStats();
@@ -182,25 +166,7 @@ export default async function AdminOverviewPage() {
           <h2 className="font-headline text-lg font-semibold text-foreground">Recent Logins</h2>
           <p className="font-body text-xs text-muted-foreground mt-0.5">Last 20 portal sign-ins across all users</p>
         </div>
-        {recentLogins.length === 0 ? (
-          <p className="font-body text-sm text-muted-foreground px-6 py-4">No logins recorded yet.</p>
-        ) : (
-          <div className="divide-y divide-border">
-            {recentLogins.map((entry, i) => (
-              <div key={i} className="flex items-center justify-between px-6 py-3">
-                <div className="flex items-center gap-3">
-                  <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-body font-medium capitalize ${ROLE_BADGE[entry.role] ?? ROLE_BADGE.student}`}>
-                    {entry.role}
-                  </span>
-                  <span className="font-body text-sm text-foreground">{entry.email}</span>
-                </div>
-                <span className="font-body text-xs text-muted-foreground flex-shrink-0 ml-4">
-                  {timeAgo(entry.loginAt)}
-                </span>
-              </div>
-            ))}
-          </div>
-        )}
+        <RecentLoginsSection logins={recentLogins} />
       </div>
     </div>
   );

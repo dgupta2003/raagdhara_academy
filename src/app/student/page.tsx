@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { adminAuth, adminDb } from '@/lib/firebase/admin';
 import type { Student, Attendance, Payment } from '@/lib/firebase/types';
+import { serializeDoc } from '@/lib/firebase/serialize';
 
 const COURSE_LABELS: Record<string, string> = {
   'hindustani-classical-vocal': 'Hindustani Classical Vocal Music',
@@ -90,7 +91,7 @@ async function getStudentOverview() {
     percent: records.length > 0 ? Math.round((presentCount / records.length) * 100) : 0,
   };
 
-  const allPayments = paymentsSnap.docs.map((d) => d.data() as Payment);
+  const allPayments = paymentsSnap.docs.map((d) => serializeDoc({ ...(d.data() as Payment) }));
   const latestPayment = allPayments.length === 0 ? null :
     allPayments.sort((a, b) => (b.dueDate as string).localeCompare(a.dueDate as string))[0];
 

@@ -3,7 +3,6 @@ import { Suspense } from 'react';
 import Script from 'next/script';
 import '../styles/index.css';
 import GoogleAnalytics from '@/components/GoogleAnalytics';
-import AuthProvider from '@/components/providers/AuthProvider';
 
 export const viewport = {
   width: 'device-width',
@@ -45,12 +44,10 @@ export default function RootLayout({
         </Script>
 </head>
       <body>
-        <AuthProvider>
-          <Suspense fallback={null}>
-            <GoogleAnalytics />
-          </Suspense>
-          {children}
-        </AuthProvider>
+        <Suspense fallback={null}>
+          <GoogleAnalytics />
+        </Suspense>
+        {children}
       </body>
     </html>
   );

@@ -1,7 +1,8 @@
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { adminAuth, adminDb } from '@/lib/firebase/admin';
-import ParentSidebar from '@/components/dashboard/ParentSidebar';
+import ParentDashboardShell from '@/components/dashboard/ParentDashboardShell';
+import AuthProvider from '@/components/providers/AuthProvider';
 
 async function verifyParentSession() {
   const cookieStore = cookies();
@@ -23,11 +24,8 @@ export default async function ParentLayout({ children }: { children: React.React
   await verifyParentSession();
 
   return (
-    <div className="flex min-h-screen bg-background">
-      <ParentSidebar />
-      <main className="flex-1 overflow-auto">
-        {children}
-      </main>
-    </div>
+    <AuthProvider>
+      <ParentDashboardShell>{children}</ParentDashboardShell>
+    </AuthProvider>
   );
 }

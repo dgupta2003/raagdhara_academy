@@ -597,6 +597,7 @@ export default function AdminPaymentsClient({
                     </button>
                     {isOpen && (
                       <div className="border-t border-border">
+                        <div className="overflow-x-auto">
                         <table className="w-full text-sm">
                           <thead className="bg-muted/30 border-b border-border">
                             <tr>
@@ -669,6 +670,7 @@ export default function AdminPaymentsClient({
                             })}
                           </tbody>
                         </table>
+                        </div>
                       </div>
                     )}
                   </div>

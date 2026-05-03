@@ -30,10 +30,11 @@ async function getOverviewStats() {
 
   const recentLogins = loginAuditSnap.docs.map((d) => {
     const data = d.data();
+    const ts = data.loginAt as { seconds: number } | null;
     return {
       email: data.email as string,
       role: data.role as string,
-      loginAt: data.loginAt as { seconds: number } | null,
+      loginAt: ts ? { seconds: ts.seconds } : null,
     };
   });
 

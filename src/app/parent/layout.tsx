@@ -2,6 +2,7 @@ import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { adminAuth, adminDb } from '@/lib/firebase/admin';
 import ParentDashboardShell from '@/components/dashboard/ParentDashboardShell';
+import AuthProvider from '@/components/providers/AuthProvider';
 
 async function verifyParentSession() {
   const cookieStore = cookies();
@@ -23,6 +24,8 @@ export default async function ParentLayout({ children }: { children: React.React
   await verifyParentSession();
 
   return (
-    <ParentDashboardShell>{children}</ParentDashboardShell>
+    <AuthProvider>
+      <ParentDashboardShell>{children}</ParentDashboardShell>
+    </AuthProvider>
   );
 }

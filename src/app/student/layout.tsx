@@ -2,6 +2,7 @@ import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { adminAuth, adminDb } from '@/lib/firebase/admin';
 import StudentDashboardShell from '@/components/dashboard/StudentDashboardShell';
+import AuthProvider from '@/components/providers/AuthProvider';
 
 async function verifyStudentSession() {
   const cookieStore = cookies();
@@ -24,6 +25,8 @@ export default async function StudentLayout({ children }: { children: React.Reac
   await verifyStudentSession();
 
   return (
-    <StudentDashboardShell>{children}</StudentDashboardShell>
+    <AuthProvider>
+      <StudentDashboardShell>{children}</StudentDashboardShell>
+    </AuthProvider>
   );
 }

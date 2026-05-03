@@ -2,6 +2,7 @@ import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { adminAuth, adminDb } from '@/lib/firebase/admin';
 import AdminDashboardShell from '@/components/dashboard/AdminDashboardShell';
+import AuthProvider from '@/components/providers/AuthProvider';
 
 // Full cryptographic session verification — runs on every admin page load.
 // This is the "inner gate": middleware checked cookie presence, this checks validity.
@@ -26,6 +27,8 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   await verifyAdminSession();
 
   return (
-    <AdminDashboardShell>{children}</AdminDashboardShell>
+    <AuthProvider>
+      <AdminDashboardShell>{children}</AdminDashboardShell>
+    </AuthProvider>
   );
 }

@@ -103,7 +103,6 @@ export default function AdminSidebar({
         // Smooth width + transform transition
         'transition-[width,transform] duration-300',
       ].join(' ')}
-      aria-hidden={!mobileOpen && typeof window !== 'undefined' && window.innerWidth < 1024 ? true : undefined}
     >
       {/* Brand */}
       <div className={`border-b border-white/10 ${collapsed ? 'lg:px-0 lg:py-6 lg:flex lg:justify-center px-6 py-6' : 'px-6 py-6'}`}>

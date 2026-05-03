@@ -7,7 +7,7 @@ import {
   signInWithEmailAndPassword,
   signOut as firebaseSignOut,
 } from 'firebase/auth';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, getDocFromServer } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase/client';
 import type { User as FirestoreUser, Student, Guardian, UserRole } from '@/lib/firebase/types';
 
@@ -45,9 +45,14 @@ async function fetchStudentProfile(studentId: string): Promise<Student | null> {
 }
 
 async function fetchGuardianProfile(guardianId: string): Promise<Guardian | null> {
-  const guardianDoc = await getDoc(doc(db, 'guardians', guardianId));
-  if (!guardianDoc.exists()) return null;
-  return guardianDoc.data() as Guardian;
+  try {
+    const guardianDoc = await getDocFromServer(doc(db, 'guardians', guardianId));
+    if (!guardianDoc.exists()) return null;
+    return guardianDoc.data() as Guardian;
+  } catch (err) {
+    console.error('[AuthContext] fetchGuardianProfile failed — check users doc has guardianId and rules allow read:', guardianId, err);
+    return null;
+  }
 }
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {

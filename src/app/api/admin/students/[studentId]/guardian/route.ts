@@ -55,13 +55,18 @@ export async function POST(
     guardianUid = existingDoc.id;
     const existingData = existingDoc.data();
 
+    const updates: Record<string, unknown> = { updatedAt: FieldValue.serverTimestamp() };
     if (!existingData.studentIds.includes(studentId)) {
-      await existingDoc.ref.update({
-        studentIds: FieldValue.arrayUnion(studentId),
-        [`studentNames.${studentId}`]: student.displayName,
-        updatedAt: FieldValue.serverTimestamp(),
-      });
+      updates.studentIds = FieldValue.arrayUnion(studentId);
+      updates[`studentNames.${studentId}`] = student.displayName;
     }
+    await existingDoc.ref.update(updates);
+
+    // Ensure users/{guardianUid} has role + guardianId so client-side AuthContext can load the profile
+    await adminDb.collection('users').doc(guardianUid).set(
+      { role: 'parent', guardianId: guardianUid },
+      { merge: true }
+    );
   } else {
     // Create new guardian Firebase Auth account (no password — will use invite link)
     try {

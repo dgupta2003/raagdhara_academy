@@ -14,7 +14,8 @@ export async function canAccessPayment(uid: string, studentId: string): Promise<
   }
 
   if (user.role === 'parent') {
-    const guardianDoc = await adminDb.collection('guardians').doc(uid).get()
+    const guardianId: string = user.guardianId ?? uid
+    const guardianDoc = await adminDb.collection('guardians').doc(guardianId).get()
     const guardian = guardianDoc.data()
     return Array.isArray(guardian?.studentIds) && guardian.studentIds.includes(studentId)
   }

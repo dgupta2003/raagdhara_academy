@@ -34,6 +34,7 @@ const PAYMENT_STYLES: Record<PaymentStatus, { label: string; classes: string }> 
   pending: { label: 'Pending', classes: 'bg-amber-50 text-amber-700 border-amber-200' },
   sent: { label: 'Sent', classes: 'bg-amber-50 text-amber-700 border-amber-200' },
   overdue: { label: 'Overdue', classes: 'bg-red-50 text-red-700 border-red-200' },
+  cancelled: { label: 'Cancelled', classes: 'bg-gray-50 text-gray-500 border-gray-200' },
 };
 
 const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];

@@ -1,25 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { cookies } from 'next/headers'
 import Razorpay from 'razorpay'
-import { adminAuth, adminDb } from '@/lib/firebase/admin'
+import { adminDb } from '@/lib/firebase/admin'
 import type { Payment } from '@/lib/firebase/types'
 import { getUsdToInrRate } from '@/lib/payments/exchange-rate'
 import { canAccessPayment } from '@/lib/payments/access'
-
-async function getStudentUid(): Promise<string | null> {
-  const cookieStore = cookies()
-  const sessionCookie = cookieStore.get('session')?.value
-  if (!sessionCookie) return null
-  try {
-    const decoded = await adminAuth.verifySessionCookie(sessionCookie, true)
-    return decoded.uid
-  } catch {
-    return null
-  }
-}
+import { getCallerUid } from '@/lib/payments/session'
 
 export async function POST(request: NextRequest) {
-  const uid = await getStudentUid()
+  const uid = await getCallerUid()
   if (!uid) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const { paymentId } = await request.json()
@@ -31,7 +19,10 @@ export async function POST(request: NextRequest) {
 
   const payment = paymentDoc.data() as Payment
   const allowed = await canAccessPayment(uid, payment.studentId)
-  if (!allowed) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  if (!allowed) {
+    console.error('[payments/create-order] access denied for uid:', uid, 'studentId:', payment.studentId)
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  }
   if (!['pending', 'sent', 'overdue'].includes(payment.status)) {
     return NextResponse.json({ error: 'Payment is not payable' }, { status: 400 })
   }

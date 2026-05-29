@@ -79,3 +79,13 @@ env:
     secret: RAZORPAY_KEY_SECRET
     availability:
       - RUNTIME
+
+  - variable: RAZORPAY_WEBHOOK_SECRET
+    secret: RAZORPAY_WEBHOOK_SECRET
+    availability:
+      - RUNTIME
+
+  - variable: CRON_SECRET
+    secret: CRON_SECRET
+    availability:
+      - RUNTIME

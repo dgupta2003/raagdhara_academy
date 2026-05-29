@@ -12,6 +12,7 @@ const STATUS_CONFIG: Record<PaymentStatus, { label: string; classes: string }> =
   pending: { label: 'Pending', classes: 'text-amber-700 bg-amber-50 border-amber-200' },
   sent: { label: 'Invoice Sent', classes: 'text-amber-700 bg-amber-50 border-amber-200' },
   overdue: { label: 'Overdue', classes: 'text-red-700 bg-red-50 border-red-200' },
+  cancelled: { label: 'Cancelled', classes: 'text-gray-500 bg-gray-50 border-gray-200' },
 };
 
 const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
@@ -80,23 +81,34 @@ function PayNowButton({ payment }: { payment: PaymentRecord }) {
           razorpay_payment_id: string;
           razorpay_signature: string;
         }) => {
-          const verifyRes = await fetch('/api/payments/verify', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              paymentId: payment.id,
-              razorpayOrderId: response.razorpay_order_id,
-              razorpayPaymentId: response.razorpay_payment_id,
-              razorpaySignature: response.razorpay_signature,
-            }),
-          });
-          const verifyData = await verifyRes.json();
-          if (!verifyRes.ok) {
-            setError(verifyData.error ?? 'Payment verification failed');
-          } else {
-            router.refresh();
+          try {
+            const verifyRes = await fetch('/api/payments/verify', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                paymentId: payment.id,
+                razorpayOrderId: response.razorpay_order_id,
+                razorpayPaymentId: response.razorpay_payment_id,
+                razorpaySignature: response.razorpay_signature,
+              }),
+            });
+            const verifyData = await verifyRes.json();
+            if (!verifyRes.ok) {
+              setError(
+                `Payment received by Razorpay (ID: ${response.razorpay_payment_id}) but could not be confirmed. ` +
+                `Please share this ID with your teacher to mark it paid.`
+              );
+            } else {
+              router.refresh();
+            }
+          } catch {
+            setError(
+              `Payment received by Razorpay (ID: ${response.razorpay_payment_id}) but confirmation failed. ` +
+              `Please share this ID with your teacher.`
+            );
+          } finally {
+            setLoading(false);
           }
-          setLoading(false);
         },
         modal: {
           ondismiss: () => setLoading(false),
@@ -158,7 +170,7 @@ export default function PaymentsClient({
         {payments.map((payment) => {
           const config = STATUS_CONFIG[payment.status];
           const isPaid = payment.status === 'paid';
-          const isPayable = !isPaid;
+          const isPayable = !isPaid && payment.status !== 'cancelled';
           const isUsd = payment.currency === 'USD' && studentCategory === 'nri';
 
           // Compute display amounts

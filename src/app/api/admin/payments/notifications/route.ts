@@ -96,13 +96,10 @@ export async function POST(request: NextRequest) {
     let guardianEmail: string | null = null
     if (student?.guardianUid) {
       try {
-        const guardianSnap = await adminDb
-          .collection('guardians')
-          .where('uid', '==', student.guardianUid)
-          .limit(1)
-          .get()
-        if (!guardianSnap.empty) {
-          const guardian = guardianSnap.docs[0].data() as Guardian
+        // Direct doc lookup — guardianUid IS the guardian document ID
+        const guardianDoc = await adminDb.collection('guardians').doc(student.guardianUid).get()
+        if (guardianDoc.exists) {
+          const guardian = guardianDoc.data() as Guardian
           if (guardian.email && guardian.email !== payment.studentEmail) {
             guardianEmail = guardian.email
             resend.emails.send({
@@ -119,8 +116,8 @@ export async function POST(request: NextRequest) {
             }).catch((err: unknown) => console.error('Reminder email (parent) failed:', err))
           }
         }
-      } catch {
-        // skip
+      } catch (err) {
+        console.error('[notifications] guardian lookup failed for guardianUid:', student.guardianUid, err)
       }
     }
 

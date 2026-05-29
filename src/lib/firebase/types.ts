@@ -4,7 +4,7 @@ export type NriCurrencyPreference = 'usd' | 'inr-equivalent'
 export type StudentStatus = 'pending' | 'active' | 'inactive'
 export type AttendanceStatus = 'present' | 'absent' | 'excused'
 export type PaymentCurrency = 'INR' | 'USD'
-export type PaymentStatus = 'pending' | 'sent' | 'paid' | 'overdue'
+export type PaymentStatus = 'pending' | 'sent' | 'paid' | 'overdue' | 'cancelled'
 
 export type FirestoreTimestamp = string | Date | { seconds: number; nanoseconds: number }
 
@@ -83,7 +83,11 @@ export interface Payment {
   dueDate: FirestoreTimestamp
   paidAt?: FirestoreTimestamp
   reminderSentAt?: FirestoreTimestamp
+  overdueNoticeSentAt?: FirestoreTimestamp
   markedPaidManually?: boolean
+  cancelledAt?: string
+  cancelledReason?: string
+  notes?: string
   createdAt: FirestoreTimestamp
   updatedAt: FirestoreTimestamp
 }
@@ -138,6 +142,9 @@ export interface Settings {
       personal: number
     }
   }
-  reminderDaysAfterDue: number
+  reminderDaysAfterDue: number   // days after due to send overdue notice (legacy, maps to overdueAfterDays)
+  autoGenerateInvoices?: boolean  // auto-create invoices monthly via cron (default: false)
+  reminderDaysBefore?: number     // days before due to send payment reminder (default: 3)
+  overdueAfterDays?: number       // days after due to mark overdue + notify (default: 3)
   updatedAt: FirestoreTimestamp
 }

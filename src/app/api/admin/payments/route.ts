@@ -93,13 +93,10 @@ async function sendInvoiceRaisedEmails(
   // Send to parent with parent portal URL if linked
   if (student.guardianUid) {
     try {
-      const guardianSnap = await adminDb
-        .collection('guardians')
-        .where('uid', '==', student.guardianUid)
-        .limit(1)
-        .get()
-      if (!guardianSnap.empty) {
-        const guardian = guardianSnap.docs[0].data() as Guardian
+      // Direct doc lookup — guardianUid IS the guardian document ID
+      const guardianDoc = await adminDb.collection('guardians').doc(student.guardianUid).get()
+      if (guardianDoc.exists) {
+        const guardian = guardianDoc.data() as Guardian
         if (guardian.email && guardian.email !== student.email) {
           resend.emails.send({
             from: 'Raagdhara Music Academy <noreply@raagdhara.com>',
@@ -114,8 +111,8 @@ async function sendInvoiceRaisedEmails(
           }).catch((err: unknown) => console.error('Invoice email (parent) failed:', err))
         }
       }
-    } catch {
-      // silently skip guardian lookup failure
+    } catch (err) {
+      console.error('[admin/payments] guardian lookup failed for guardianUid:', student.guardianUid, err)
     }
   }
 }
@@ -157,7 +154,7 @@ export async function DELETE(request: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
   try {
-    const { paymentId } = await request.json() as { paymentId: string }
+    const { paymentId, reason } = await request.json() as { paymentId: string; reason?: string }
     if (!paymentId) return NextResponse.json({ error: 'paymentId required' }, { status: 400 })
 
     const ref = adminDb.collection('payments').doc(paymentId)
@@ -166,11 +163,23 @@ export async function DELETE(request: NextRequest) {
 
     const status = doc.data()?.status
     if (status === 'paid') {
-      return NextResponse.json({ error: 'Cannot delete a paid invoice' }, { status: 400 })
+      return NextResponse.json({ error: 'Cannot cancel a paid invoice' }, { status: 400 })
+    }
+    if (status === 'cancelled') {
+      // Already cancelled — allow hard-delete to clean up
+      await ref.delete()
+      return NextResponse.json({ deleted: true })
     }
 
-    await ref.delete()
-    return NextResponse.json({ deleted: true })
+    // Soft-cancel: preserve audit trail
+    const now = new Date().toISOString()
+    await ref.update({
+      status: 'cancelled',
+      cancelledAt: now,
+      ...(reason ? { cancelledReason: reason } : {}),
+      updatedAt: FieldValue.serverTimestamp(),
+    })
+    return NextResponse.json({ cancelled: true })
   } catch (err) {
     return NextResponse.json({ error: (err as Error).message ?? 'Internal server error' }, { status: 500 })
   }
@@ -301,15 +310,11 @@ export async function PATCH(request: NextRequest) {
           }),
         }).catch((err: unknown) => console.error('Student paid email failed:', err))
 
-        // Send to parent if linked
+        // Send to parent if linked — direct doc lookup
         if (student?.guardianUid) {
-          const guardianSnap = await adminDb
-            .collection('guardians')
-            .where('uid', '==', student.guardianUid)
-            .limit(1)
-            .get()
-          if (!guardianSnap.empty) {
-            const guardian = guardianSnap.docs[0].data() as Guardian
+          const guardianDoc = await adminDb.collection('guardians').doc(student.guardianUid).get()
+          if (guardianDoc.exists) {
+            const guardian = guardianDoc.data() as Guardian
             if (guardian.email && guardian.email !== studentEmail) {
               resend.emails.send({
                 from: 'Raagdhara Music Academy <noreply@raagdhara.com>',

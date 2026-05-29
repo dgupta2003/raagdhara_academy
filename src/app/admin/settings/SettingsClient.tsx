@@ -8,9 +8,12 @@ export default function SettingsClient({ settings }: { settings: Settings }) {
   const [saveError, setSaveError] = useState('');
   const [saveSuccess, setSaveSuccess] = useState(false);
 
+  const [autoGenerateInvoices, setAutoGenerateInvoices] = useState(settings.autoGenerateInvoices ?? false);
+
   const [fields, setFields] = useState({
     defaultPaymentDay: settings.defaultPaymentDay.toString(),
-    reminderDaysAfterDue: settings.reminderDaysAfterDue.toString(),
+    reminderDaysBefore: (settings.reminderDaysBefore ?? 3).toString(),
+    overdueAfterDays: (settings.overdueAfterDays ?? settings.reminderDaysAfterDue ?? 3).toString(),
     // India fees (paise)
     indiaNormal: settings.indiaFees.normal.toString(),
     indiaSpecial: settings.indiaFees.special.toString(),
@@ -37,7 +40,10 @@ export default function SettingsClient({ settings }: { settings: Settings }) {
 
     const payload: Partial<Settings> = {
       defaultPaymentDay: Number(fields.defaultPaymentDay),
-      reminderDaysAfterDue: Number(fields.reminderDaysAfterDue),
+      autoGenerateInvoices,
+      reminderDaysBefore: Number(fields.reminderDaysBefore),
+      overdueAfterDays: Number(fields.overdueAfterDays),
+      reminderDaysAfterDue: Number(fields.overdueAfterDays), // keep legacy field in sync
       indiaFees: {
         normal: Number(fields.indiaNormal),
         special: Number(fields.indiaSpecial),
@@ -97,14 +103,48 @@ export default function SettingsClient({ settings }: { settings: Settings }) {
       {/* Payment timing */}
       <div className="bg-card rounded-lg border border-border shadow-warm p-6">
         <h2 className="font-headline text-base font-semibold text-foreground mb-4">Payment timing</h2>
+        <div>
+          <label className={labelClass}>Default payment due day (1–28)</label>
+          <input type="number" min={1} max={28} value={fields.defaultPaymentDay} onChange={set('defaultPaymentDay')} className={inputClass} />
+        </div>
+      </div>
+
+      {/* Automation */}
+      <div className="bg-card rounded-lg border border-border shadow-warm p-6">
+        <h2 className="font-headline text-base font-semibold text-foreground mb-1">Automation</h2>
+        <p className="font-body text-xs text-muted-foreground mb-4">
+          Configure automatic invoice generation and notification schedules. Requires Cloud Scheduler to be set up.
+        </p>
+
+        {/* Auto-generate toggle */}
+        <div className="flex items-center justify-between py-3 border-b border-border mb-4">
+          <div>
+            <p className="font-body text-sm font-medium text-foreground">Auto-generate invoices</p>
+            <p className="font-body text-xs text-muted-foreground mt-0.5">
+              Automatically create monthly invoices on each student&apos;s due date
+            </p>
+          </div>
+          <button
+            type="button"
+            role="switch"
+            aria-checked={autoGenerateInvoices}
+            onClick={() => { setAutoGenerateInvoices((v) => !v); setSaveSuccess(false); }}
+            className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-ring ${autoGenerateInvoices ? 'bg-primary' : 'bg-muted'}`}
+          >
+            <span
+              className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ${autoGenerateInvoices ? 'translate-x-5' : 'translate-x-0'}`}
+            />
+          </button>
+        </div>
+
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className={labelClass}>Default payment due day (1–28)</label>
-            <input type="number" min={1} max={28} value={fields.defaultPaymentDay} onChange={set('defaultPaymentDay')} className={inputClass} />
+            <label className={labelClass}>Send reminder N days before due date</label>
+            <input type="number" min={0} max={30} value={fields.reminderDaysBefore} onChange={set('reminderDaysBefore')} className={inputClass} />
           </div>
           <div>
-            <label className={labelClass}>Send reminder N days after due date</label>
-            <input type="number" min={0} value={fields.reminderDaysAfterDue} onChange={set('reminderDaysAfterDue')} className={inputClass} />
+            <label className={labelClass}>Mark overdue N days after due date</label>
+            <input type="number" min={0} max={30} value={fields.overdueAfterDays} onChange={set('overdueAfterDays')} className={inputClass} />
           </div>
         </div>
       </div>

@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { cookies } from 'next/headers'
 import { createHmac } from 'crypto'
 import { Resend } from 'resend'
-import { adminAuth, adminDb } from '@/lib/firebase/admin'
+import { adminDb } from '@/lib/firebase/admin'
 import type { Payment, Guardian } from '@/lib/firebase/types'
 import { invoicePaidAdminEmail, invoicePaidStudentEmail } from '@/lib/email/templates'
 import { canAccessPayment } from '@/lib/payments/access'
+import { getCallerUid } from '@/lib/payments/session'
 
 const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
 
@@ -15,20 +15,8 @@ function formatAmountForEmail(amount: number, currency: string): string {
   return `₹${rupees.toLocaleString('en-IN')}`
 }
 
-async function getStudentUid(): Promise<string | null> {
-  const cookieStore = cookies()
-  const sessionCookie = cookieStore.get('session')?.value
-  if (!sessionCookie) return null
-  try {
-    const decoded = await adminAuth.verifySessionCookie(sessionCookie, true)
-    return decoded.uid
-  } catch {
-    return null
-  }
-}
-
 export async function POST(request: NextRequest) {
-  const uid = await getStudentUid()
+  const uid = await getCallerUid()
   if (!uid) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const { paymentId, razorpayOrderId, razorpayPaymentId, razorpaySignature } = await request.json()
@@ -37,13 +25,14 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Missing fields' }, { status: 400 })
   }
 
-  // Verify HMAC signature
-  const secret = process.env.RAZORPAY_KEY_SECRET!
+  // Verify HMAC signature — trim to guard against copy-paste whitespace in Secret Manager
+  const secret = (process.env.RAZORPAY_KEY_SECRET ?? '').trim()
   const expectedSignature = createHmac('sha256', secret)
     .update(`${razorpayOrderId}|${razorpayPaymentId}`)
     .digest('hex')
 
   if (expectedSignature !== razorpaySignature) {
+    console.error('[payments/verify] HMAC mismatch for payment:', paymentId)
     return NextResponse.json({ error: 'Invalid signature' }, { status: 400 })
   }
 
@@ -52,8 +41,17 @@ export async function POST(request: NextRequest) {
   if (!paymentDoc.exists) return NextResponse.json({ error: 'Payment not found' }, { status: 404 })
 
   const payment = paymentDoc.data() as Payment
+
+  // Idempotency — if already paid (e.g. webhook already ran), return success
+  if (payment.status === 'paid') {
+    return NextResponse.json({ success: true })
+  }
+
   const allowed = await canAccessPayment(uid, payment.studentId)
-  if (!allowed) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  if (!allowed) {
+    console.error('[payments/verify] access denied for uid:', uid, 'studentId:', payment.studentId)
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  }
 
   const paidAt = new Date()
   await paymentRef.update({
@@ -80,7 +78,7 @@ export async function POST(request: NextRequest) {
       paidAt: paidAtStr,
       method: 'razorpay',
     }),
-  }).catch((err: unknown) => console.error('Admin paid email failed:', err))
+  }).catch((err: unknown) => console.error('[payments/verify] admin email failed:', err))
 
   // Notify student + parent fire-and-forget
   ;(async () => {
@@ -88,7 +86,6 @@ export async function POST(request: NextRequest) {
       const studentDoc = await adminDb.collection('students').doc(payment.studentId).get()
       const student = studentDoc.data()
 
-      // Send to student
       resend.emails.send({
         from: 'Raagdhara Music Academy <noreply@raagdhara.com>',
         to: payment.studentEmail,
@@ -100,17 +97,13 @@ export async function POST(request: NextRequest) {
           method: 'razorpay',
           portalUrl: 'https://raagdhara.com/student/payments',
         }),
-      }).catch((err: unknown) => console.error('Student paid email failed:', err))
+      }).catch((err: unknown) => console.error('[payments/verify] student email failed:', err))
 
-      // Send to parent if linked
       if (student?.guardianUid) {
-        const guardianSnap = await adminDb
-          .collection('guardians')
-          .where('uid', '==', student.guardianUid)
-          .limit(1)
-          .get()
-        if (!guardianSnap.empty) {
-          const guardian = guardianSnap.docs[0].data() as Guardian
+        // Direct doc lookup — guardianUid IS the guardian document ID
+        const guardianDoc = await adminDb.collection('guardians').doc(student.guardianUid).get()
+        if (guardianDoc.exists) {
+          const guardian = guardianDoc.data() as Guardian
           if (guardian.email && guardian.email !== payment.studentEmail) {
             resend.emails.send({
               from: 'Raagdhara Music Academy <noreply@raagdhara.com>',
@@ -123,12 +116,12 @@ export async function POST(request: NextRequest) {
                 method: 'razorpay',
                 portalUrl: 'https://raagdhara.com/parent/payments',
               }),
-            }).catch((err: unknown) => console.error('Parent paid email failed:', err))
+            }).catch((err: unknown) => console.error('[payments/verify] parent email failed:', err))
           }
         }
       }
     } catch (err) {
-      console.error('[payments/verify] student confirmation email failed:', err)
+      console.error('[payments/verify] confirmation email failed:', err)
     }
   })()
 

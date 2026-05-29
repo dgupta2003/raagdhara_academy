@@ -14,6 +14,7 @@ const STATUS_CONFIG: Record<PaymentStatus, { label: string; classes: string }> =
   pending: { label: 'Pending', classes: 'text-amber-700 bg-amber-50 border-amber-200' },
   sent: { label: 'Invoice Sent', classes: 'text-amber-700 bg-amber-50 border-amber-200' },
   overdue: { label: 'Overdue', classes: 'text-red-700 bg-red-50 border-red-200' },
+  cancelled: { label: 'Cancelled', classes: 'text-gray-500 bg-gray-50 border-gray-200 line-through' },
 }
 
 const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
@@ -78,6 +79,11 @@ export default function AdminPaymentsClient({
   const [markingPaid, setMarkingPaid] = useState<string | null>(null)
   const [sendingNotif, setSendingNotif] = useState<string | null>(null)
   const [notifResult, setNotifResult] = useState<Record<string, string>>({})
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [editAmount, setEditAmount] = useState('')
+  const [editDueDate, setEditDueDate] = useState('')
+  const [editNotes, setEditNotes] = useState('')
+  const [editSaving, setEditSaving] = useState(false)
   const [exporting, setExporting] = useState(false)
   const [expandedMonths, setExpandedMonths] = useState<Set<string>>(() => {
     if (payments.length === 0) return new Set()
@@ -196,8 +202,8 @@ export default function AdminPaymentsClient({
 
   // ── Invoice actions ───────────────────────────────────────────────────────
 
-  const handleDelete = async (paymentId: string) => {
-    if (!confirm('Delete this invoice? This cannot be undone.')) return
+  const handleCancel = async (paymentId: string) => {
+    if (!confirm('Cancel this invoice? It will be marked cancelled (not deleted).')) return
     setDeleting(paymentId)
     try {
       const res = await fetch('/api/admin/payments', {
@@ -206,12 +212,41 @@ export default function AdminPaymentsClient({
         body: JSON.stringify({ paymentId }),
       })
       const data = await res.json()
-      if (!res.ok) throw new Error(data.error ?? 'Failed to delete')
+      if (!res.ok) throw new Error(data.error ?? 'Failed to cancel')
       router.refresh()
     } catch (err) {
       alert((err as Error).message)
     } finally {
       setDeleting(null)
+    }
+  }
+
+  const startEdit = (p: PaymentRecord) => {
+    setEditingId(p.id)
+    setEditAmount(p.currency === 'USD' ? String(p.amount) : String(Math.round(p.amount / 100)))
+    setEditDueDate(p.dueDate as string)
+    setEditNotes(p.notes ?? '')
+  }
+
+  const handleEditSave = async (p: PaymentRecord) => {
+    setEditSaving(true)
+    try {
+      const amount = p.currency === 'USD'
+        ? Number(editAmount)
+        : Math.round(Number(editAmount) * 100)
+      const res = await fetch(`/api/admin/payments/${p.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ amount, dueDate: editDueDate, notes: editNotes || undefined }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error ?? 'Failed to save')
+      setEditingId(null)
+      router.refresh()
+    } catch (err) {
+      alert((err as Error).message)
+    } finally {
+      setEditSaving(false)
     }
   }
 
@@ -611,19 +646,38 @@ export default function AdminPaymentsClient({
                           <tbody className="divide-y divide-border">
                             {rows.map((p) => {
                               const config = STATUS_CONFIG[p.status]
-                              const canAct = p.status !== 'paid'
+                              const isPaid = p.status === 'paid'
+                              const isCancelled = p.status === 'cancelled'
+                              const canAct = !isPaid && !isCancelled
                               const isOverdue = p.status === 'overdue'
+                              const isEditing = editingId === p.id
                               return (
-                                <tr key={p.id} className="hover:bg-muted/10 transition-colors">
+                                <tr key={p.id} className={`hover:bg-muted/10 transition-colors ${isCancelled ? 'opacity-60' : ''}`}>
                                   <td className="px-4 py-3">
                                     <p className="font-body font-medium text-foreground">{p.studentName}</p>
                                     <p className="font-body text-xs text-muted-foreground">{p.studentEmail}</p>
                                   </td>
                                   <td className="px-4 py-3 font-body text-foreground">
-                                    {formatAmount(p.amount, p.currency)}
+                                    {isEditing ? (
+                                      <input
+                                        type="number"
+                                        value={editAmount}
+                                        onChange={(e) => setEditAmount(e.target.value)}
+                                        className="w-24 px-2 py-1 text-xs border border-border rounded bg-input"
+                                        placeholder={p.currency === 'USD' ? 'USD' : '₹'}
+                                      />
+                                    ) : formatAmount(p.amount, p.currency)}
+                                    {isEditing && <span className="ml-1 text-xs text-muted-foreground">{p.currency === 'USD' ? 'USD' : '₹ (whole)'}</span>}
                                   </td>
                                   <td className="px-4 py-3 font-body text-foreground">
-                                    {formatDate(p.dueDate as string)}
+                                    {isEditing ? (
+                                      <input
+                                        type="date"
+                                        value={editDueDate}
+                                        onChange={(e) => setEditDueDate(e.target.value)}
+                                        className="px-2 py-1 text-xs border border-border rounded bg-input"
+                                      />
+                                    ) : formatDate(p.dueDate as string)}
                                   </td>
                                   <td className="px-4 py-3">
                                     <div>
@@ -639,7 +693,30 @@ export default function AdminPaymentsClient({
                                     </div>
                                   </td>
                                   <td className="px-4 py-3">
-                                    {canAct && (
+                                    {isEditing ? (
+                                      <div className="flex flex-wrap gap-2 items-center">
+                                        <input
+                                          type="text"
+                                          value={editNotes}
+                                          onChange={(e) => setEditNotes(e.target.value)}
+                                          placeholder="Notes (optional)"
+                                          className="px-2 py-1 text-xs border border-border rounded bg-input w-32"
+                                        />
+                                        <button
+                                          onClick={() => handleEditSave(p)}
+                                          disabled={editSaving}
+                                          className="text-xs font-body text-green-700 hover:text-green-800 border border-green-200 bg-green-50 hover:bg-green-100 rounded px-2 py-1 transition-colors disabled:opacity-50"
+                                        >
+                                          {editSaving ? '…' : 'Save'}
+                                        </button>
+                                        <button
+                                          onClick={() => setEditingId(null)}
+                                          className="text-xs font-body text-muted-foreground hover:text-foreground transition-colors"
+                                        >
+                                          Cancel
+                                        </button>
+                                      </div>
+                                    ) : canAct ? (
                                       <div className="flex flex-wrap gap-2">
                                         <button
                                           onClick={() => handleMarkPaid(p.id, p.studentName)}
@@ -649,6 +726,12 @@ export default function AdminPaymentsClient({
                                           {markingPaid === p.id ? '…' : 'Mark paid'}
                                         </button>
                                         <button
+                                          onClick={() => startEdit(p)}
+                                          className="text-xs font-body text-blue-700 hover:text-blue-800 border border-blue-200 bg-blue-50 hover:bg-blue-100 rounded px-2 py-1 transition-colors"
+                                        >
+                                          Edit
+                                        </button>
+                                        <button
                                           onClick={() => handleSendNotif(p.id, isOverdue ? 'overdue' : 'reminder')}
                                           disabled={sendingNotif === p.id}
                                           className="text-xs font-body text-amber-700 hover:text-amber-800 border border-amber-200 bg-amber-50 hover:bg-amber-100 rounded px-2 py-1 transition-colors disabled:opacity-50"
@@ -656,14 +739,14 @@ export default function AdminPaymentsClient({
                                           {sendingNotif === p.id ? '…' : isOverdue ? 'Send overdue notice' : 'Send reminder'}
                                         </button>
                                         <button
-                                          onClick={() => handleDelete(p.id)}
+                                          onClick={() => handleCancel(p.id)}
                                           disabled={deleting === p.id}
                                           className="text-xs font-body text-muted-foreground hover:text-red-600 transition-colors disabled:opacity-50"
                                         >
-                                          {deleting === p.id ? '…' : 'Delete'}
+                                          {deleting === p.id ? '…' : 'Cancel invoice'}
                                         </button>
                                       </div>
-                                    )}
+                                    ) : null}
                                   </td>
                                 </tr>
                               )

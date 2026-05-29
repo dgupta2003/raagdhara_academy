@@ -23,6 +23,7 @@ const STATUS_CONFIG: Record<PaymentStatus, { label: string; classes: string }> =
   pending: { label: 'Pending', classes: 'text-amber-700 bg-amber-50 border-amber-200' },
   sent: { label: 'Invoice Sent', classes: 'text-amber-700 bg-amber-50 border-amber-200' },
   overdue: { label: 'Overdue', classes: 'text-red-700 bg-red-50 border-red-200' },
+  cancelled: { label: 'Cancelled', classes: 'text-gray-500 bg-gray-50 border-gray-200' },
 };
 
 const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']

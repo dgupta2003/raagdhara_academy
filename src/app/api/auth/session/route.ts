@@ -50,8 +50,9 @@ export async function POST(request: NextRequest) {
 
     return response
   } catch (error) {
+    console.error('[auth/session] failed to create session cookie:', error)
     return NextResponse.json(
-      { error: 'Unable to create session cookie', details: (error as Error)?.message ?? null },
+      { error: 'Unable to create session cookie' },
       { status: 500 }
     )
   }

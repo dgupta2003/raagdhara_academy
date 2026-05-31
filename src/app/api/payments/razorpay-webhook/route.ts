@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createHmac } from 'crypto'
+import { createHmac, timingSafeEqual } from 'crypto'
 import { Resend } from 'resend'
 import { adminDb } from '@/lib/firebase/admin'
 import type { Payment, Guardian } from '@/lib/firebase/types'
@@ -18,7 +18,9 @@ export async function POST(request: NextRequest) {
   }
 
   const expected = createHmac('sha256', webhookSecret).update(rawBody).digest('hex')
-  if (expected !== signature) {
+  const expectedBuf = Buffer.from(expected)
+  const signatureBuf = Buffer.from(signature)
+  if (expectedBuf.length !== signatureBuf.length || !timingSafeEqual(expectedBuf, signatureBuf)) {
     console.error('[razorpay-webhook] signature mismatch — possible spoofed request')
     return NextResponse.json({ error: 'Invalid signature' }, { status: 400 })
   }

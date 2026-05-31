@@ -9,7 +9,7 @@ export function studentWelcomeEmail(data: StudentWelcomeEmailData): string {
   const body = `
     <h1 style="margin:0 0 8px;font-size:22px;color:${BRAND_BROWN};">You're approved! 🎵</h1>
     <p style="margin:0 0 24px;font-size:15px;color:#555555;line-height:1.6;">
-      Hi ${data.displayName}, your Raagdhara Academy account has been reviewed and activated. You can now sign in to your student portal.
+      Hi ${escapeHtml(data.displayName)}, your Raagdhara Academy account has been reviewed and activated. You can now sign in to your student portal.
     </p>
 
     <table width="100%" cellpadding="0" cellspacing="0" style="background-color:${BRAND_BG};border-radius:6px;padding:16px 20px;margin-bottom:24px;">
@@ -47,13 +47,26 @@ const BRAND_BROWN = '#8B4513';
 const BRAND_GOLD = '#D4AF37';
 const BRAND_BG = '#FDF5E6';
 
+// Escape user-supplied values before interpolating into email HTML. Several of these
+// templates render data that originates from untrusted input (e.g. the public
+// consultation booking form), so any value derived from user input must pass through
+// this before reaching the HTML string.
+function escapeHtml(value: string): string {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 function baseLayout(title: string, body: string): string {
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>${title}</title>
+  <title>${escapeHtml(title)}</title>
 </head>
 <body style="margin:0;padding:0;background-color:#f4f4f4;font-family:Georgia,serif;">
   <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#f4f4f4;padding:32px 0;">
@@ -95,7 +108,7 @@ function baseLayout(title: string, body: string): string {
 function detailRow(label: string, value: string): string {
   return `<tr>
     <td style="padding:6px 0;font-size:13px;color:#666666;width:140px;vertical-align:top;">${label}</td>
-    <td style="padding:6px 0;font-size:13px;color:#333333;font-weight:bold;">${value || '—'}</td>
+    <td style="padding:6px 0;font-size:13px;color:#333333;font-weight:bold;">${escapeHtml(value) || '—'}</td>
   </tr>`;
 }
 
@@ -103,7 +116,7 @@ export function consultationStudentConfirmationEmail(data: ConsultationEmailData
   const body = `
     <h1 style="margin:0 0 8px;font-size:22px;color:${BRAND_BROWN};">Your consultation is booked!</h1>
     <p style="margin:0 0 24px;font-size:15px;color:#555555;line-height:1.6;">
-      Hi ${data.name}, thank you for reaching out. We've received your free consultation request and will be in touch soon to confirm your session details.
+      Hi ${escapeHtml(data.name)}, thank you for reaching out. We've received your free consultation request and will be in touch soon to confirm your session details.
     </p>
 
     <table width="100%" cellpadding="0" cellspacing="0" style="background-color:${BRAND_BG};border-radius:6px;padding:16px 20px;margin-bottom:24px;">
@@ -147,7 +160,7 @@ export function forgotPasswordEmail(data: ForgotPasswordEmailData): string {
   const body = `
     <h1 style="margin:0 0 8px;font-size:22px;color:${BRAND_BROWN};">Reset your password</h1>
     <p style="margin:0 0 24px;font-size:15px;color:#555555;line-height:1.6;">
-      We received a request to reset the password for <strong>${data.email}</strong>.
+      We received a request to reset the password for <strong>${escapeHtml(data.email)}</strong>.
       Click the button below to choose a new password.
     </p>
 
@@ -191,7 +204,7 @@ export function studentInviteEmail(data: StudentInviteEmailData): string {
   const body = `
     <h1 style="margin:0 0 8px;font-size:22px;color:${BRAND_BROWN};">Welcome to the Raagdhara Student Portal!</h1>
     <p style="margin:0 0 20px;font-size:15px;color:#555555;line-height:1.6;">
-      Hi ${data.displayName}, we're excited to share that Raagdhara Academy now has a dedicated online portal for students!
+      Hi ${escapeHtml(data.displayName)}, we're excited to share that Raagdhara Academy now has a dedicated online portal for students!
       You can track your attendance, view invoices, and pay fees — all in one place.
     </p>
 
@@ -245,7 +258,7 @@ export function guardianInviteEmail(data: GuardianInviteEmailData): string {
   const body = `
     <h1 style="margin:0 0 8px;font-size:22px;color:${BRAND_BROWN};">Parent Portal Access — Raagdhara Academy</h1>
     <p style="margin:0 0 20px;font-size:15px;color:#555555;line-height:1.6;">
-      Hi ${data.parentName}, we've set up parent portal access so you can stay connected with ${data.studentName}'s learning journey at Raagdhara Academy.
+      Hi ${escapeHtml(data.parentName)}, we've set up parent portal access so you can stay connected with ${escapeHtml(data.studentName)}'s learning journey at Raagdhara Academy.
     </p>
 
     <table width="100%" cellpadding="0" cellspacing="0" style="background-color:${BRAND_BG};border-radius:6px;padding:16px 20px;margin-bottom:20px;">
@@ -257,7 +270,7 @@ export function guardianInviteEmail(data: GuardianInviteEmailData): string {
 
     <p style="margin:0 0 6px;font-size:14px;font-weight:bold;color:#333333;">What you can do in the portal:</p>
     <ul style="margin:0 0 20px;padding-left:20px;font-size:14px;color:#555555;line-height:2;">
-      <li>View ${data.studentName}'s full attendance history</li>
+      <li>View ${escapeHtml(data.studentName)}'s full attendance history</li>
       <li>Check pending invoices and pay fees online</li>
       <li>Stay informed about monthly progress</li>
     </ul>
@@ -292,7 +305,7 @@ export function invoiceRaisedEmail(data: InvoiceRaisedEmailData): string {
   const body = `
     <h1 style="margin:0 0 8px;font-size:22px;color:${BRAND_BROWN};">New invoice from Raagdhara Academy</h1>
     <p style="margin:0 0 24px;font-size:15px;color:#555555;line-height:1.6;">
-      Hi ${data.studentName}, a new invoice has been raised for your upcoming month of classes.
+      Hi ${escapeHtml(data.studentName)}, a new invoice has been raised for your upcoming month of classes.
     </p>
 
     <table width="100%" cellpadding="0" cellspacing="0" style="background-color:${BRAND_BG};border-radius:6px;padding:16px 20px;margin-bottom:24px;">
@@ -359,7 +372,7 @@ export function paymentReminderEmail(data: PaymentReminderEmailData): string {
       ${isOverdue ? `Invoice overdue by ${data.daysOverdue} day${data.daysOverdue !== 1 ? 's' : ''}` : 'Friendly payment reminder'}
     </h1>
     <p style="margin:0 0 24px;font-size:15px;color:#555555;line-height:1.6;">
-      Hi ${data.studentName}, ${isOverdue
+      Hi ${escapeHtml(data.studentName)}, ${isOverdue
         ? `your invoice of <strong>${data.amount}</strong> was due on <strong>${data.dueDate}</strong> and is now overdue. Please make payment at your earliest convenience to avoid any interruption to your classes.`
         : `this is a friendly reminder that your invoice of <strong>${data.amount}</strong> is due on <strong>${data.dueDate}</strong>.`
       }
@@ -418,7 +431,7 @@ export function invoicePaidStudentEmail(data: InvoicePaidStudentEmailData): stri
   const body = `
     <h1 style="margin:0 0 8px;font-size:22px;color:#15803D;">Payment confirmed</h1>
     <p style="margin:0 0 24px;font-size:15px;color:#555555;line-height:1.6;">
-      Hi ${data.studentName}, your payment has been received. Thank you!
+      Hi ${escapeHtml(data.studentName)}, your payment has been received. Thank you!
     </p>
 
     <table width="100%" cellpadding="0" cellspacing="0" style="background-color:${BRAND_BG};border-radius:6px;padding:16px 20px;margin-bottom:24px;">

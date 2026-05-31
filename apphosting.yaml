@@ -48,6 +48,13 @@ env:
       - BUILD
       - RUNTIME
 
+  # App Check — enforce server-side verification on the public API routes.
+  # verifyAppCheck() is a no-op unless this is exactly "true". To roll back, set "false".
+  - variable: APPCHECK_ENFORCE
+    value: "true"
+    availability:
+      - RUNTIME
+
   # Non-sensitive server vars — plain values are fine
   - variable: FIREBASE_PROJECT_ID
     value: raagdhara-academy

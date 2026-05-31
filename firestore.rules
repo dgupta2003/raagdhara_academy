@@ -68,9 +68,30 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
-    // consultations — anyone can submit a booking; only admin can read/edit
+    // consultations — anyone can submit a booking (public form), but constrain the
+    // shape to block abuse of the unauthenticated write: only the known fields are
+    // allowed, required fields must be present, and free-text is size-capped.
+    // NOTE: this is a backstop, not full abuse protection — App Check / rate limiting
+    // on the booking endpoint is still recommended.
     match /consultations/{id} {
-      allow create: if true;
+      allow create: if
+        request.resource.data.keys().hasOnly([
+          'name', 'email', 'phone', 'countryCode', 'ageGroup', 'course',
+          'timezone', 'experience', 'goals', 'hearAbout', 'consultationType', 'createdAt'
+        ])
+        && request.resource.data.keys().hasAll(['name', 'email', 'phone', 'course', 'createdAt'])
+        && request.resource.data.name is string
+        && request.resource.data.name.size() > 0 && request.resource.data.name.size() <= 100
+        && request.resource.data.email is string && request.resource.data.email.size() <= 200
+        && request.resource.data.phone is string && request.resource.data.phone.size() <= 40
+        && request.resource.data.course is string && request.resource.data.course.size() <= 100
+        && request.resource.data.createdAt is timestamp
+        && (!('goals' in request.resource.data) || request.resource.data.goals == null
+            || (request.resource.data.goals is string && request.resource.data.goals.size() <= 2000))
+        && (!('hearAbout' in request.resource.data) || request.resource.data.hearAbout == null
+            || (request.resource.data.hearAbout is string && request.resource.data.hearAbout.size() <= 500))
+        && (!('experience' in request.resource.data) || request.resource.data.experience == null
+            || (request.resource.data.experience is string && request.resource.data.experience.size() <= 500));
       allow read, update, delete: if isAdmin();
     }
 

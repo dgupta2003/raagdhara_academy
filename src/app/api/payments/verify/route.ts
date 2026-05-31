@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createHmac } from 'crypto'
+import { createHmac, timingSafeEqual } from 'crypto'
 import { Resend } from 'resend'
 import { adminDb } from '@/lib/firebase/admin'
 import type { Payment, Guardian } from '@/lib/firebase/types'
@@ -8,6 +8,15 @@ import { canAccessPayment } from '@/lib/payments/access'
 import { getCallerUid } from '@/lib/payments/session'
 
 const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
+
+// Constant-time string comparison. timingSafeEqual throws on length mismatch, so
+// guard the length first (the length itself is not secret for a hex digest).
+function timingSafeStringEqual(a: string, b: string): boolean {
+  const bufA = Buffer.from(a)
+  const bufB = Buffer.from(b)
+  if (bufA.length !== bufB.length) return false
+  return timingSafeEqual(bufA, bufB)
+}
 
 function formatAmountForEmail(amount: number, currency: string): string {
   if (currency === 'USD') return `$${amount}`
@@ -31,7 +40,7 @@ export async function POST(request: NextRequest) {
     .update(`${razorpayOrderId}|${razorpayPaymentId}`)
     .digest('hex')
 
-  if (expectedSignature !== razorpaySignature) {
+  if (!timingSafeStringEqual(expectedSignature, String(razorpaySignature))) {
     console.error('[payments/verify] HMAC mismatch for payment:', paymentId)
     return NextResponse.json({ error: 'Invalid signature' }, { status: 400 })
   }
@@ -41,6 +50,16 @@ export async function POST(request: NextRequest) {
   if (!paymentDoc.exists) return NextResponse.json({ error: 'Payment not found' }, { status: 404 })
 
   const payment = paymentDoc.data() as Payment
+
+  // Bind the verified Razorpay order to THIS invoice. The HMAC only proves the
+  // (order, payment) pair is genuine — it does not prove the order belongs to the
+  // invoice named by the client-supplied paymentId. Without this check a caller could
+  // reuse a valid signature from one (cheaper/earlier) payment to mark a different
+  // unpaid invoice of their own as paid. create-order stamps razorpayOrderId on the doc.
+  if (payment.razorpayOrderId !== razorpayOrderId) {
+    console.error('[payments/verify] order/invoice mismatch for payment:', paymentId)
+    return NextResponse.json({ error: 'Order does not match this invoice' }, { status: 400 })
+  }
 
   // Idempotency — if already paid (e.g. webhook already ran), return success
   if (payment.status === 'paid') {

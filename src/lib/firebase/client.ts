@@ -29,6 +29,14 @@ export const db = getFirestore(app)
 let appCheck: AppCheck | undefined
 
 if (typeof window !== 'undefined' && process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY) {
+  // Local dev: reCAPTCHA can't issue tokens on localhost, so use an App Check debug
+  // token instead. On first load this prints "App Check debug token: <uuid>" to the
+  // console — register it under Firebase Console → App Check → Manage debug tokens.
+  // Never enabled in production (would be a bypass).
+  if (process.env.NODE_ENV !== 'production') {
+    // @ts-expect-error - App Check debug global is not typed on Window
+    self.FIREBASE_APPCHECK_DEBUG_TOKEN = true
+  }
   try {
     appCheck = initializeAppCheck(app, {
       provider: new ReCaptchaEnterpriseProvider(process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY),

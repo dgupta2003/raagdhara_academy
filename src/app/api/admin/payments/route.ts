@@ -234,6 +234,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Student not found' }, { status: 404 })
     }
     const student = { id: studentDoc.id, ...(studentDoc.data() as Student) }
+    if (student.status !== 'active') {
+      return NextResponse.json(
+        { error: 'Cannot generate an invoice for a student who is not active' },
+        { status: 400 },
+      )
+    }
     const result = await createPaymentForStudent(student, settings, targetMonth, exchangeRate)
     return NextResponse.json({ created: result === 'created' ? 1 : 0, skipped: result === 'skipped' ? 1 : 0 })
   } catch (err) {

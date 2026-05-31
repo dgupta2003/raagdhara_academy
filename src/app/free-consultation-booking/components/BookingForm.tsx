@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import Icon from '@/components/ui/AppIcon';
 import Script from 'next/script';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
-import { db } from '@/lib/firebase/client';
+import { db, getAppCheckToken } from '@/lib/firebase/client';
 import { trackBookingConversion, trackFormStep } from '@/lib/analytics';
 
 interface BookingFormProps {
@@ -139,9 +139,13 @@ export default function BookingForm({ selectedType, onSubmit }: BookingFormProps
       });
 
       // Trigger emails in background (fire and forget - don't wait)
+      const appCheckToken = await getAppCheckToken();
       fetch('/api/email/consultation-notification', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(appCheckToken ? { 'X-Firebase-AppCheck': appCheckToken } : {}),
+        },
         body: JSON.stringify({
           name: formData.name,
           email: formData.email,

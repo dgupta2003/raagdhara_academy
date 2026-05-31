@@ -5,8 +5,25 @@ import {
   consultationAdminNotificationEmail,
   type ConsultationEmailData,
 } from '@/lib/email/templates';
+import { checkRateLimit, getClientIp } from '@/lib/rate-limit';
+import { verifyAppCheck } from '@/lib/firebase/appcheck-server';
 
 export async function POST(request: NextRequest) {
+  // App Check (no-op unless APPCHECK_ENFORCE=true)
+  if (!(await verifyAppCheck(request))) {
+    return NextResponse.json({ error: 'Failed verification' }, { status: 401 });
+  }
+
+  // Rate limit: max 5 consultation submissions per hour per IP
+  const ip = getClientIp(request);
+  const rl = await checkRateLimit(`consult:${ip}`, 5, 60 * 60 * 1000);
+  if (!rl.allowed) {
+    return NextResponse.json(
+      { error: 'Too many requests. Please try again later.' },
+      { status: 429, headers: { 'Retry-After': String(rl.retryAfterSec) } },
+    );
+  }
+
   const resend = new Resend(process.env.RESEND_API_KEY);
   const FROM_EMAIL = 'Raagdhara Music Academy <noreply@raagdhara.com>';
   const ADMIN_EMAIL = process.env.ADMIN_EMAIL ?? 'raagdharamusic@gmail.com';

@@ -2,7 +2,7 @@ import { cert, getApps, initializeApp, type ServiceAccount } from 'firebase-admi
 import { getAuth } from 'firebase-admin/auth'
 import { getFirestore } from 'firebase-admin/firestore'
 
-function getAdminApp() {
+export function getAdminApp() {
   if (getApps().length > 0) return getApps()[0]!
 
   // Local dev: explicit service account from .env.local

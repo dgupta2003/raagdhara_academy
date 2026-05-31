@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { getAppCheckToken } from '@/lib/firebase/client';
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState('');
@@ -14,9 +15,13 @@ export default function ForgotPasswordPage() {
     setError('');
     setLoading(true);
     try {
+      const appCheckToken = await getAppCheckToken();
       const res = await fetch('/api/auth/forgot-password', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(appCheckToken ? { 'X-Firebase-AppCheck': appCheckToken } : {}),
+        },
         body: JSON.stringify({ email: email.trim() }),
       });
       if (!res.ok) throw new Error('request_failed');

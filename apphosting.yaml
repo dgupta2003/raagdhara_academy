@@ -41,6 +41,13 @@ env:
       - BUILD
       - RUNTIME
 
+  # App Check — reCAPTCHA Enterprise site key (public; embedded in the client bundle)
+  - variable: NEXT_PUBLIC_RECAPTCHA_SITE_KEY
+    value: 6Lc6GgUtAAAAAIncu91eMnWqfumboDADxIyi0gHJ
+    availability:
+      - BUILD
+      - RUNTIME
+
   # Non-sensitive server vars — plain values are fine
   - variable: FIREBASE_PROJECT_ID
     value: raagdhara-academy

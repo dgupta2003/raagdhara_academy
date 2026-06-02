@@ -40,15 +40,17 @@ function buildDueDate(paymentDay: number, month: string): string {
   return new Date(year, m, day).toISOString().split('T')[0]
 }
 
+// Single-field equality + JS month filter — avoids a composite (studentId, dueDate) index.
+// Mirrors the admin route's implementation so the two stay consistent.
 async function alreadyHasPayment(studentId: string, month: string): Promise<boolean> {
   const snap = await adminDb
     .collection('payments')
     .where('studentId', '==', studentId)
-    .where('dueDate', '>=', month + '-01')
-    .where('dueDate', '<=', month + '-31')
-    .limit(1)
     .get()
-  return !snap.empty
+  return snap.docs.some((d) => {
+    const dueDate = d.data().dueDate as string | undefined
+    return typeof dueDate === 'string' && dueDate.startsWith(month)
+  })
 }
 
 async function sendInvoiceRaisedEmails(
@@ -100,8 +102,9 @@ async function sendInvoiceRaisedEmails(
 }
 
 // POST /api/cron/generate-invoices
-// Called daily by Cloud Scheduler. Generates invoices for active students whose payment due
-// date falls today. Checks settings.autoGenerateInvoices — skips if false.
+// Called daily by Cloud Scheduler. Generates this month's invoice for any active student whose
+// payment due day has arrived (and who has no invoice for the month yet) — idempotent and
+// self-healing across daily runs. Checks settings.autoGenerateInvoices — skips if false.
 export async function POST(request: NextRequest) {
   const cronSecret = (process.env.CRON_SECRET ?? '').trim()
   if (!cronSecret || request.headers.get('Authorization') !== `Bearer ${cronSecret}`) {
@@ -121,9 +124,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ skipped: true, reason: 'autoGenerateInvoices is disabled' })
     }
 
-    const today = new Date()
-    const todayDay = today.getDate()
-    const month = today.toISOString().slice(0, 7) // YYYY-MM
+    // Compute "today" in IST (the academy's business timezone) so month/day boundaries
+    // match the academy's calendar regardless of the Cloud Run runtime's UTC clock.
+    const istDate = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(new Date()) // YYYY-MM-DD
+    const [istYear, istMonth, istDay] = istDate.split('-')
+    const month = `${istYear}-${istMonth}` // YYYY-MM
+    const todayDay = parseInt(istDay, 10)
 
     const studentsSnap = await adminDb
       .collection('students')
@@ -137,10 +143,12 @@ export async function POST(request: NextRequest) {
       const student = { ...(doc.data() as Student), id: doc.id }
       const paymentDay = student.paymentDueDayOverride ?? settings.defaultPaymentDay
 
-      // Only generate for students whose due date is today
-      const maxDay = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate()
+      // Generate once the student's due day has arrived this month. Combined with the
+      // alreadyHasPayment dedup below this is idempotent and self-healing: a failed run
+      // is recovered by the next daily run instead of silently losing the month.
+      const maxDay = new Date(parseInt(istYear, 10), parseInt(istMonth, 10), 0).getDate()
       const effectiveDay = Math.min(paymentDay, maxDay)
-      if (effectiveDay !== todayDay) {
+      if (effectiveDay > todayDay) {
         skipped++
         continue
       }

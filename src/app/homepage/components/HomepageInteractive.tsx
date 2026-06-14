@@ -4,7 +4,6 @@ import HeroSection from './HeroSection';
 import AboutPreview from './AboutPreview';
 import CoursesPreview from './CoursesPreview';
 import TestimonialsSection from './TestimonialsSection';
-// import RagaVisualization from './RagaVisualization';
 import CTASection from './CTASection';
 import StudentPortalAnnouncement from './StudentPortalAnnouncement';
 import Footer from '@/components/common/Footer';
@@ -16,7 +15,6 @@ const HomepageInteractive = () => {
       <HeroSection />
       <AboutPreview />
       <CoursesPreview />
-      {/* <RagaVisualization /> */}
       <StudentPortalAnnouncement />
       <TestimonialsSection />
       <CTASection />

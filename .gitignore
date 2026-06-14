@@ -50,6 +50,9 @@ current_datafiles/
 .claude/
 skills-lock.json
 
+# Graphify knowledge-graph output (derived cache; may embed extracted file content)
+graphify-out/
+
 # Local progress notes
 .progress.md
 

@@ -34,8 +34,11 @@ if (typeof window !== 'undefined' && process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY)
   // console — register it under Firebase Console → App Check → Manage debug tokens.
   // Never enabled in production (would be a bypass).
   if (process.env.NODE_ENV !== 'production') {
+    // Use a fixed debug token from env (register it once under Firebase Console →
+    // App Check → Apps → Manage debug tokens) so it survives reloads; fall back to
+    // `true` to auto-generate a per-session token when the env var is unset.
     // @ts-expect-error - App Check debug global is not typed on Window
-    self.FIREBASE_APPCHECK_DEBUG_TOKEN = true
+    self.FIREBASE_APPCHECK_DEBUG_TOKEN = process.env.NEXT_PUBLIC_APPCHECK_DEBUG_TOKEN || true
   }
   try {
     appCheck = initializeAppCheck(app, {

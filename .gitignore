@@ -39,6 +39,7 @@ turbo/
 firebase-service-account.json
 
 # Local environment variables (SENSITIVE - never commit)
+.env
 .env.local
 .env*.local
 

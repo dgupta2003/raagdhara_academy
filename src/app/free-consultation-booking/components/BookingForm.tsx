@@ -57,27 +57,44 @@ export default function BookingForm({ selectedType, onSubmit }: BookingFormProps
     setIsHydrated(true);
   }, []);
 
-  // Initialize Calendly inline widget when showCalendly becomes true
+  // Initialize Calendly inline widget when showCalendly becomes true.
+  // The widget.js script is lazyOnload, so it may not be ready when this effect
+  // fires (esp. on prod / cold cache) — retry until window.Calendly is present
+  // so the prefill always gets applied.
   useEffect(() => {
-    if (showCalendly && window.Calendly) {
-      const calendlyContainer = document.getElementById('calendly-inline-widget');
-      if (calendlyContainer) {
+    if (!showCalendly) return;
+    let cancelled = false;
+    let attempts = 0;
+    const init = () => {
+      if (cancelled) return;
+      const el = document.getElementById('calendly-inline-widget');
+      if (window.Calendly && el) {
+        el.innerHTML = ''; // guard against double-init
         window.Calendly.initInlineWidget({
           url: 'https://calendly.com/raagdharamusic/30min',
-          parentElement: calendlyContainer,
+          parentElement: el,
           prefill: {
             name: formData.name,
             email: formData.email,
             customAnswers: {
-              a1: formData.phone,
+              a1: `${formData.countryCode} ${formData.phone}`,
               a2: formData.course,
-              a3: formData.experience
-            }
-          }
+              a3: formData.experience,
+            },
+          },
         });
+      } else if (attempts < 100) {
+        attempts += 1;
+        setTimeout(init, 100); // script/DOM not ready yet — retry (cap ~10s)
+      } else {
+        console.warn('[booking] Calendly widget.js failed to load; prefill skipped.');
       }
-    }
-  }, [showCalendly]);
+    };
+    init();
+    return () => {
+      cancelled = true;
+    };
+  }, [showCalendly]); // eslint-disable-line react-hooks/exhaustive-deps -- formData is frozen after submit
 
   const validateForm = (): boolean => {
     const newErrors: Partial<FormData> = {};
